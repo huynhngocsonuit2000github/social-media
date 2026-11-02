@@ -19,7 +19,9 @@ export class NotificationCenter {
   readonly notifications = signal<AppNotification[]>([]);
   readonly isLoading = signal<boolean>(false);
 
-  readonly count = computed(() => this.notifications().length);
+  // Đếm số lượng thông báo chưa đọc (!isRead) hiển thị trên badge
+  readonly unreadCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
+  readonly count = this.unreadCount;
 
   constructor() {
     // Tự động tải thông báo khi người dùng đăng nhập

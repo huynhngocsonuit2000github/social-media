@@ -13,7 +13,6 @@ export interface Post {
   title: string;
   content: string;
   createdAt: string;
-  allowedViewerIds?: string[];
 }
 
 export interface AppNotification {
@@ -27,9 +26,6 @@ export interface AppNotification {
   createdAt: string;
   isRead: boolean;
 }
-
-// Giữ alias tương thích nếu có import cũ
-export type Notification = AppNotification;
 
 export interface User {
   id: string;

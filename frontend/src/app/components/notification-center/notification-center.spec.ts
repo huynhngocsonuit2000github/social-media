@@ -164,4 +164,75 @@ describe('NotificationCenter', () => {
     expect(component.notifications().length).toBe(0);
     expect(component.isOpen()).toBe(false);
   });
+
+  it('should count only unread notifications for badge count', async () => {
+    fixture.detectChanges();
+    const req = httpTesting.expectOne(`${apiBase}/notifications`);
+
+    const mixedNotifications: AppNotification[] = [
+      {
+        id: 'notif-1',
+        recipientUserId: 'author-system',
+        actorUserId: 'user-1',
+        actorName: 'Nguyễn Văn A',
+        postId: '11111111-1111-1111-1111-111111111111',
+        commentId: 'comment-1',
+        message: 'Bình luận 1',
+        createdAt: '2026-11-02T10:00:00Z',
+        isRead: true
+      },
+      {
+        id: 'notif-2',
+        recipientUserId: 'author-system',
+        actorUserId: 'user-2',
+        actorName: 'Trần Văn B',
+        postId: '11111111-1111-1111-1111-111111111111',
+        commentId: 'comment-2',
+        message: 'Bình luận 2',
+        createdAt: '2026-11-02T10:05:00Z',
+        isRead: false
+      }
+    ];
+
+    req.flush(mixedNotifications);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.notifications().length).toBe(2);
+    expect(component.unreadCount()).toBe(1);
+    expect(component.count()).toBe(1);
+
+    const badge = fixture.nativeElement.querySelector('[data-testid="notif-badge"]');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent.trim()).toBe('1');
+  });
+
+  it('should not display badge when all notifications are already read', async () => {
+    fixture.detectChanges();
+    const req = httpTesting.expectOne(`${apiBase}/notifications`);
+
+    const readNotifications: AppNotification[] = [
+      {
+        id: 'notif-1',
+        recipientUserId: 'author-system',
+        actorUserId: 'user-1',
+        actorName: 'Nguyễn Văn A',
+        postId: '11111111-1111-1111-1111-111111111111',
+        commentId: 'comment-1',
+        message: 'Bình luận 1',
+        createdAt: '2026-11-02T10:00:00Z',
+        isRead: true
+      }
+    ];
+
+    req.flush(readNotifications);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.unreadCount()).toBe(0);
+    expect(component.count()).toBe(0);
+
+    const badge = fixture.nativeElement.querySelector('[data-testid="notif-badge"]');
+    expect(badge).toBeFalsy();
+  });
 });

@@ -13,7 +13,7 @@ public static class PostEndpoints
         {
             var posts = await postRepo.GetAllAsync();
             var response = posts
-                .Select(p => new PostResponse(p.Id, p.AuthorId, p.Title, p.Content, p.CreatedAt, p.AllowedViewerIds?.ToList()))
+                .Select(p => new PostResponse(p.Id, p.AuthorId, p.Title, p.Content, p.CreatedAt))
                 .ToList();
 
             return Results.Ok(response);
@@ -27,7 +27,7 @@ public static class PostEndpoints
                 return Results.NotFound(new ErrorResponse("Bài đăng không tồn tại."));
             }
 
-            var response = new PostResponse(post.Id, post.AuthorId, post.Title, post.Content, post.CreatedAt, post.AllowedViewerIds?.ToList());
+            var response = new PostResponse(post.Id, post.AuthorId, post.Title, post.Content, post.CreatedAt);
             return Results.Ok(response);
         });
     }

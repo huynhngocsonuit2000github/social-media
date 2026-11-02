@@ -16,8 +16,7 @@ public record PostResponse(
     string AuthorId,
     string Title,
     string Content,
-    DateTimeOffset CreatedAt,
-    IReadOnlyCollection<string>? AllowedViewerIds = null
+    DateTimeOffset CreatedAt
 );
 
 public record NotificationResponse(

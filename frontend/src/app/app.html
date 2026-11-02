@@ -16,28 +16,6 @@
           <span class="user-info guest-info">Chưa đăng nhập (Khách)</span>
           <button class="auth-btn login-btn" (click)="toggleLogin()">Đăng nhập</button>
         }
-
-        <!-- Công cụ Demo / Dev: Chuyển đổi tài khoản người dùng để kiểm thử chủ bài đăng vs người bình luận -->
-        <div class="dev-switch-panel" title="Công cụ Demo / Dev">
-          <span class="demo-tag">[Demo]</span>
-          @if (authService.currentUser()?.id !== 'author-system') {
-            <button
-              class="switch-user-btn"
-              (click)="loginAsPostAuthor()"
-              title="[Demo] Đăng nhập tài khoản tác giả bài đăng để kiểm tra Notification Center"
-            >
-              Xem với tư cách Chủ bài đăng
-            </button>
-          } @else {
-            <button
-              class="switch-user-btn"
-              (click)="toggleLogin()"
-              title="[Demo] Đổi lại người bình luận (user-1)"
-            >
-              Xem với tư cách Người bình luận
-            </button>
-          }
-        </div>
       </div>
     </div>
   </header>
@@ -47,17 +25,6 @@
       <div class="post-header">
         <div class="post-meta">
           <span class="post-author">Người đăng: Hệ thống (author-system)</span>
-          <!-- Công cụ Demo / Dev: Giả lập quyền xem bài đăng phía client (quyền thật do backend kiểm soát) -->
-          <div class="demo-permission-wrapper" title="Công cụ Demo: Giả lập quyền xem phía client">
-            <span class="demo-tag">[Demo]</span>
-            <button
-              class="permission-toggle-btn"
-              (click)="toggleViewPermission()"
-              title="[Demo] Bật/tắt quyền xem bài đăng (AC2)"
-            >
-              Quyền xem: <strong>{{ hasViewPermission() ? 'Có quyền xem' : 'Không có quyền xem' }}</strong>
-            </button>
-          </div>
         </div>
         <h2 class="post-title">Chào mừng bạn đến với mạng xã hội</h2>
       </div>
@@ -71,7 +38,6 @@
       <!-- Khu vực bình luận -->
       <app-comment-section
         [postId]="currentPostId()"
-        [hasViewPermission]="hasViewPermission()"
       ></app-comment-section>
     </div>
   </main>

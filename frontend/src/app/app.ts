@@ -17,7 +17,6 @@ export class App {
 
   readonly defaultPostId = '11111111-1111-1111-1111-111111111111';
   readonly currentPostId = signal(this.defaultPostId);
-  readonly hasViewPermission = signal<boolean>(true);
 
   toggleLogin(): void {
     if (this.authService.isLoggedIn()) {
@@ -25,13 +24,5 @@ export class App {
     } else {
       this.authService.login({ id: 'user-1', name: 'Nguyễn Văn A' });
     }
-  }
-
-  loginAsPostAuthor(): void {
-    this.authService.login({ id: 'author-system', name: 'Chủ bài đăng (Hệ thống)' });
-  }
-
-  toggleViewPermission(): void {
-    this.hasViewPermission.update((v) => !v);
   }
 }
