@@ -76,6 +76,24 @@
 .dev-switch-panel {
   display: flex;
   align-items: center;
+  gap: 0.35rem;
+}
+
+.demo-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b45309;
+  background-color: #fef3c7;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  border: 1px solid #fde68a;
+  text-transform: uppercase;
+}
+
+.demo-permission-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .switch-user-btn {

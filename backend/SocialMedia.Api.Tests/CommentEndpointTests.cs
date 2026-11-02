@@ -168,6 +168,59 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
     }
 
     [Fact]
+    public async Task AC3_GetComments_SameTimestamp_PreservesInsertionOrderViaSequenceNumber()
+    {
+        // Arrange: Seed post and 2 comments with exact same CreatedAt timestamp
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var commentRepo = _factory.Services.GetRequiredService<ICommentRepository>();
+
+        var post = new Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài đăng kiểm tra trùng timestamp",
+            Content = "Nội dung bài đăng",
+            AuthorId = "author-same-time",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await postRepo.AddAsync(post);
+
+        var fixedTime = new DateTimeOffset(2026, 11, 2, 10, 0, 0, TimeSpan.Zero);
+        var comment1 = new Comment
+        {
+            PostId = post.Id,
+            UserId = "user-1",
+            AuthorName = "User 1",
+            Content = "Bình luận cùng giờ 1",
+            CreatedAt = fixedTime
+        };
+        var comment2 = new Comment
+        {
+            PostId = post.Id,
+            UserId = "user-2",
+            AuthorName = "User 2",
+            Content = "Bình luận cùng giờ 2",
+            CreatedAt = fixedTime
+        };
+
+        await commentRepo.AddAsync(comment1);
+        await commentRepo.AddAsync(comment2);
+
+        using var client = CreateAuthenticatedClient();
+
+        // Act
+        var listResponse = await client.GetAsync($"/api/posts/{post.Id}/comments");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var comments = await listResponse.Content.ReadFromJsonAsync<List<CommentResponse>>(JsonOptions);
+        Assert.NotNull(comments);
+        var matchedComments = comments.Where(c => c.PostId == post.Id).ToList();
+        Assert.Equal(2, matchedComments.Count);
+        Assert.Equal("Bình luận cùng giờ 1", matchedComments[0].Content);
+        Assert.Equal("Bình luận cùng giờ 2", matchedComments[1].Content);
+    }
+
+    [Fact]
     public async Task AC4_PostComment_OnOtherUserPost_CreatesNotificationInNotificationCenterForPostAuthor()
     {
         // Arrange: Chủ bài đăng là post-owner-123
@@ -333,6 +386,9 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
 
         var postResponse = await client.PostAsJsonAsync($"/api/posts/{postId}/comments", request);
         Assert.Equal(HttpStatusCode.Unauthorized, postResponse.StatusCode);
+        var error = await postResponse.Content.ReadFromJsonAsync<ErrorResponse>(JsonOptions);
+        Assert.NotNull(error);
+        Assert.Contains("Vui lòng đăng nhập", error.Error);
     }
 
     [Fact]
@@ -344,6 +400,9 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
 
         var postResponse = await client.PostAsJsonAsync($"/api/posts/{nonExistentPostId}/comments", request);
         Assert.Equal(HttpStatusCode.NotFound, postResponse.StatusCode);
+        var error = await postResponse.Content.ReadFromJsonAsync<ErrorResponse>(JsonOptions);
+        Assert.NotNull(error);
+        Assert.Contains("Bài đăng không tồn tại", error.Error);
     }
 
     [Fact]
@@ -389,5 +448,68 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
 
         var notifsAfter = await notifRepo.GetByUserIdAsync("author-to-delete");
         Assert.Empty(notifsAfter);
+    }
+
+    [Fact]
+    public async Task SimpleAuthenticationHandler_BlockedInProductionEnvironment()
+    {
+        // Arrange: Khởi tạo app với môi trường Production
+        using var prodFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+        });
+        using var client = prodFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-User-Id", "attacker-in-prod");
+
+        var postId = InMemoryPostRepository.DefaultPostId;
+        var request = new CreateCommentRequest("Bình luận thử nghiệm trong prod");
+
+        // Act
+        var response = await client.PostAsJsonAsync($"/api/posts/{postId}/comments", request);
+
+        // Assert: SimpleAuthenticationHandler phải từ chối trong Production, trả về 401 Unauthorized
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostComment_WhenNotificationServiceFails_CommentIsStillCreatedSuccessfully()
+    {
+        // Arrange: Mock / ghi đè INotificationRepository bằng repo luôn ném lỗi
+        using var customFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<INotificationRepository, FailingNotificationRepository>();
+            });
+        });
+
+        using var client = customFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-User-Id", "commenter-fail-notif");
+        client.DefaultRequestHeaders.Add("X-User-Name", "Commenter");
+
+        var postId = InMemoryPostRepository.DefaultPostId;
+        var request = new CreateCommentRequest("Bình luận khi dịch vụ thông báo lỗi.");
+
+        // Act: Bình luận vẫn phải thành công
+        var response = await client.PostAsJsonAsync($"/api/posts/{postId}/comments", request);
+
+        // Assert: 201 Created và bình luận được tạo
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<CommentResponse>(JsonOptions);
+        Assert.NotNull(created);
+        Assert.Equal("Bình luận khi dịch vụ thông báo lỗi.", created.Content);
+    }
+
+    private class FailingNotificationRepository : INotificationRepository
+    {
+        public Task<Notification> AddAsync(Notification notification)
+        {
+            throw new InvalidOperationException("Lỗi giả lập từ dịch vụ thông báo");
+        }
+
+        public Task<IReadOnlyList<Notification>> GetByUserIdAsync(string userId) =>
+            Task.FromResult<IReadOnlyList<Notification>>(Array.Empty<Notification>());
+
+        public Task DeleteByPostIdAsync(Guid postId) => Task.CompletedTask;
     }
 }

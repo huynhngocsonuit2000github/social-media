@@ -16,7 +16,18 @@
     <div class="notification-dropdown" role="dialog" aria-label="Trung tâm thông báo">
       <div class="dropdown-header">
         <h4 class="dropdown-title">Trung tâm thông báo ({{ count() }})</h4>
-        <button class="close-btn" (click)="toggleOpen()" aria-label="Đóng thông báo">✕</button>
+        <div class="header-actions">
+          <button
+            class="refresh-btn"
+            (click)="refresh()"
+            [disabled]="isLoading()"
+            title="Làm mới thông báo"
+            aria-label="Làm mới thông báo"
+          >
+            🔄
+          </button>
+          <button class="close-btn" (click)="toggleOpen()" aria-label="Đóng thông báo">✕</button>
+        </div>
       </div>
 
       <div class="dropdown-body">

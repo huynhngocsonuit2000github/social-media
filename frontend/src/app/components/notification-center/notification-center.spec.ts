@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { NotificationCenter } from './notification-center';
 import { AuthService } from '../../services/auth.service';
-import { Notification } from '../../models/comment.model';
+import { AppNotification } from '../../models/comment.model';
 import { environment } from '../../../environments/environment';
 
 describe('NotificationCenter', () => {
@@ -14,7 +14,7 @@ describe('NotificationCenter', () => {
 
   const apiBase = environment.apiBaseUrl;
 
-  const mockNotifications: Notification[] = [
+  const mockNotifications: AppNotification[] = [
     {
       id: 'notif-1',
       recipientUserId: 'author-system',
@@ -104,6 +104,49 @@ describe('NotificationCenter', () => {
     const emptyMsg = fixture.nativeElement.querySelector('[data-testid="empty-notif"]');
     expect(emptyMsg).toBeTruthy();
     expect(emptyMsg.textContent).toContain('Bạn không có thông báo nào.');
+  });
+
+  it('should refresh notifications when refresh button is clicked', async () => {
+    fixture.detectChanges();
+    const initReq = httpTesting.expectOne(`${apiBase}/notifications`);
+    initReq.flush(mockNotifications);
+
+    await fixture.whenStable();
+    component.toggleOpen();
+    fixture.detectChanges();
+
+    expect(component.notifications().length).toBe(1);
+
+    // Click nút làm mới
+    const refreshBtn = fixture.nativeElement.querySelector('.refresh-btn');
+    expect(refreshBtn).toBeTruthy();
+    refreshBtn.click();
+    fixture.detectChanges();
+
+    const refreshReq = httpTesting.expectOne(`${apiBase}/notifications`);
+    expect(refreshReq.request.method).toBe('GET');
+
+    const updatedNotifications: AppNotification[] = [
+      ...mockNotifications,
+      {
+        id: 'notif-2',
+        recipientUserId: 'author-system',
+        actorUserId: 'user-2',
+        actorName: 'Trần Văn C',
+        postId: '11111111-1111-1111-1111-111111111111',
+        commentId: 'comment-2',
+        message: 'Trần Văn C đã bình luận về bài viết của bạn.',
+        createdAt: '2026-11-02T10:05:00Z',
+        isRead: false
+      }
+    ];
+    refreshReq.flush(updatedNotifications);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.notifications().length).toBe(2);
+    expect(component.count()).toBe(2);
   });
 
   it('should clear notifications and close dropdown on logout', async () => {

@@ -49,7 +49,8 @@ public static class CommentEndpoints
             HttpContext httpContext,
             IPostRepository postRepo,
             ICommentRepository commentRepo,
-            INotificationRepository notificationRepo) =>
+            INotificationRepository notificationRepo,
+            ILoggerFactory loggerFactory) =>
         {
             // Kiểm tra xác thực: Chưa đăng nhập
             if (httpContext.User.Identity?.IsAuthenticated != true)
@@ -108,18 +109,26 @@ public static class CommentEndpoints
             // AC4: Khi bình luận thành công trên bài đăng của người khác, gửi thông báo cho chủ bài đăng
             if (!string.Equals(userId, post.AuthorId, StringComparison.Ordinal))
             {
-                var notification = new Notification
+                try
                 {
-                    RecipientUserId = post.AuthorId,
-                    ActorUserId = userId,
-                    ActorName = authorName,
-                    PostId = postId,
-                    CommentId = comment.Id,
-                    Message = $"{authorName} đã bình luận về bài viết của bạn.",
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
+                    var notification = new Notification
+                    {
+                        RecipientUserId = post.AuthorId,
+                        ActorUserId = userId,
+                        ActorName = authorName,
+                        PostId = postId,
+                        CommentId = comment.Id,
+                        Message = $"{authorName} đã bình luận về bài viết của bạn.",
+                        CreatedAt = DateTimeOffset.UtcNow
+                    };
 
-                await notificationRepo.AddAsync(notification);
+                    await notificationRepo.AddAsync(notification);
+                }
+                catch (Exception ex)
+                {
+                    var logger = loggerFactory.CreateLogger("CommentEndpoints");
+                    logger.LogWarning(ex, "Không thể tạo thông báo cho chủ bài đăng {AuthorId} khi tạo bình luận {CommentId}.", post.AuthorId, comment.Id);
+                }
             }
 
             var response = new CommentResponse(

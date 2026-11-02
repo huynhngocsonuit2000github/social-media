@@ -16,7 +16,7 @@ export interface Post {
   allowedViewerIds?: string[];
 }
 
-export interface Notification {
+export interface AppNotification {
   id: string;
   recipientUserId: string;
   actorUserId: string;
@@ -27,6 +27,9 @@ export interface Notification {
   createdAt: string;
   isRead: boolean;
 }
+
+// Giữ alias tương thích nếu có import cũ
+export type Notification = AppNotification;
 
 export interface User {
   id: string;

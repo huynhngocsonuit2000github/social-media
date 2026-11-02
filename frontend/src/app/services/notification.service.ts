@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Notification } from '../models/comment.model';
+import { AppNotification } from '../models/comment.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -13,8 +13,8 @@ export class NotificationService {
   private readonly authService = inject(AuthService);
   private readonly baseUrl = environment.apiBaseUrl;
 
-  getNotifications(): Observable<Notification[]> {
+  getNotifications(): Observable<AppNotification[]> {
     const headers = new HttpHeaders(this.authService.getAuthHeaders());
-    return this.http.get<Notification[]>(`${this.baseUrl}/notifications`, { headers });
+    return this.http.get<AppNotification[]>(`${this.baseUrl}/notifications`, { headers });
   }
 }

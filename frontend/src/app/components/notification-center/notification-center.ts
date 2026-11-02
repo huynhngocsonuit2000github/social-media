@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Notification } from '../../models/comment.model';
+import { AppNotification } from '../../models/comment.model';
 import { NotificationService } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -16,7 +16,7 @@ export class NotificationCenter {
   readonly authService = inject(AuthService);
 
   readonly isOpen = signal<boolean>(false);
-  readonly notifications = signal<Notification[]>([]);
+  readonly notifications = signal<AppNotification[]>([]);
   readonly isLoading = signal<boolean>(false);
 
   readonly count = computed(() => this.notifications().length);
@@ -36,6 +36,10 @@ export class NotificationCenter {
 
   toggleOpen(): void {
     this.isOpen.update((open) => !open);
+  }
+
+  refresh(): void {
+    this.loadNotifications();
   }
 
   loadNotifications(): void {
