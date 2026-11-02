@@ -7,12 +7,14 @@ public class InMemoryPostRepository : IPostRepository
 {
     private readonly ConcurrentDictionary<Guid, Post> _posts = new();
     private readonly ICommentRepository _commentRepository;
+    private readonly INotificationRepository? _notificationRepository;
 
     public static readonly Guid DefaultPostId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
-    public InMemoryPostRepository(ICommentRepository commentRepository)
+    public InMemoryPostRepository(ICommentRepository commentRepository, INotificationRepository? notificationRepository = null)
     {
         _commentRepository = commentRepository;
+        _notificationRepository = notificationRepository;
 
         // Seed a default post for viewing and commenting
         var defaultPost = new Post
@@ -50,6 +52,10 @@ public class InMemoryPostRepository : IPostRepository
         {
             // Cascade delete comments belonging to this post as requested by PO
             await _commentRepository.DeleteByPostIdAsync(id);
+            if (_notificationRepository is not null)
+            {
+                await _notificationRepository.DeleteByPostIdAsync(id);
+            }
             return true;
         }
 

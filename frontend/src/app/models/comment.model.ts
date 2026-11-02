@@ -13,6 +13,19 @@ export interface Post {
   title: string;
   content: string;
   createdAt: string;
+  allowedViewerIds?: string[];
+}
+
+export interface Notification {
+  id: string;
+  recipientUserId: string;
+  actorUserId: string;
+  actorName: string;
+  postId: string;
+  commentId: string;
+  message: string;
+  createdAt: string;
+  isRead: boolean;
 }
 
 export interface User {

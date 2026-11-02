@@ -1,10 +1,12 @@
 <section class="comment-section" aria-label="Khu vực bình luận">
   <h3 class="section-title">Bình luận ({{ comments().length }})</h3>
 
-  <!-- Danh sách bình luận (AC5: hiển thị theo thứ tự thời gian, mới nhất ở cuối danh sách) -->
+  <!-- Danh sách bình luận (AC3: hiển thị theo thứ tự thời gian tăng dần, mới nhất ở cuối danh sách) -->
   <div class="comment-list" aria-live="polite">
     @if (isLoading()) {
       <div class="loading-state">Đang tải bình luận...</div>
+    } @else if (!hasViewPermission()) {
+      <div class="empty-state permission-notice">Bạn không có quyền xem bình luận của bài đăng này.</div>
     } @else if (comments().length === 0) {
       <div class="empty-state">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</div>
     } @else {
@@ -12,7 +14,7 @@
         <article class="comment-item" [attr.data-comment-id]="comment.id">
           <div class="comment-header">
             <span class="author-name">{{ comment.authorName }}</span>
-            <!-- Hiển thị thời gian định dạng ngày giờ địa phương dd/MM/yyyy HH:mm theo PO -->
+            <!-- Hiển thị thời gian định dạng ngày giờ địa phương dd/MM/yyyy HH:mm -->
             <time class="comment-time" [attr.datetime]="comment.createdAt">
               {{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}
             </time>
@@ -36,7 +38,7 @@
         placeholder="Chia sẻ ý kiến của bạn... (tối đa 500 ký tự)"
         [value]="content()"
         (input)="onContentChange($any($event.target).value)"
-        [disabled]="isSubmitting()"
+        [disabled]="isSubmitting() || !hasViewPermission()"
       ></textarea>
       
       <div class="counter-and-actions">
@@ -47,7 +49,7 @@
       </div>
     </div>
 
-    <!-- Thông báo lỗi (AC3, AC4, AC7, AC8) -->
+    <!-- Thông báo lỗi (AC2, AC5, AC6) -->
     @if (errorMessage()) {
       <div class="alert error-alert" role="alert">
         {{ errorMessage() }}
@@ -65,7 +67,7 @@
       <button
         type="submit"
         class="submit-button"
-        [disabled]="isSubmitting()"
+        [disabled]="isSubmitting() || !hasViewPermission()"
       >
         @if (isSubmitting()) {
           <span>Đang gửi...</span>

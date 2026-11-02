@@ -51,7 +51,7 @@ describe('CommentSection', () => {
     expect(component.comments().length).toBe(0);
   });
 
-  it('AC1: should display valid comment at the end of the comment list', async () => {
+  it('AC1: should display valid comment on post where user has permission', async () => {
     fixture.detectChanges();
     const initReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     initReq.flush([
@@ -94,7 +94,127 @@ describe('CommentSection', () => {
     expect(component.errorMessage()).toBeNull();
   });
 
-  it('AC2: should successfully post comment of exactly 500 characters', async () => {
+  it('AC2: should reject comment when user lacks permission to view post', async () => {
+    fixture.componentRef.setInput('hasViewPermission', false);
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    component.onContentChange('Cố gắng bình luận khi không có quyền xem');
+    component.submitComment();
+
+    // Không gửi request POST khi không có quyền xem
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
+    expect(component.errorMessage()).toBe('Bạn không có quyền xem bài đăng này.');
+  });
+
+  it('AC2: should handle 403 Forbidden error from backend when user lacks permission', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    component.onContentChange('Thử gửi bình luận');
+    component.submitComment();
+
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    postReq.flush(
+      { error: 'Bạn không có quyền xem bài đăng này.' },
+      { status: 403, statusText: 'Forbidden' }
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.errorMessage()).toBe('Bạn không có quyền xem bài đăng này.');
+  });
+
+  it('AC2: should handle 403 Forbidden on loading comments', async () => {
+    fixture.detectChanges();
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    req.flush(
+      { error: 'Bạn không có quyền xem bài đăng này.' },
+      { status: 403, statusText: 'Forbidden' }
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.errorMessage()).toBe('Bạn không có quyền xem bài đăng này.');
+  });
+
+  it('AC3: should display comments in chronological order (oldest first, newest last)', async () => {
+    fixture.detectChanges();
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+
+    const mockComments: Comment[] = [
+      {
+        id: 'c-old',
+        postId: samplePostId,
+        userId: 'u-1',
+        authorName: 'User 1',
+        content: 'Bình luận cũ nhất',
+        createdAt: '2026-11-02T08:00:00Z'
+      },
+      {
+        id: 'c-mid',
+        postId: samplePostId,
+        userId: 'u-2',
+        authorName: 'User 2',
+        content: 'Bình luận giữa',
+        createdAt: '2026-11-02T09:00:00Z'
+      },
+      {
+        id: 'c-new',
+        postId: samplePostId,
+        userId: 'u-3',
+        authorName: 'User 3',
+        content: 'Bình luận mới nhất',
+        createdAt: '2026-11-02T10:00:00Z'
+      }
+    ];
+
+    req.flush(mockComments);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const commentElements = fixture.nativeElement.querySelectorAll('.comment-item');
+    expect(commentElements.length).toBe(3);
+    expect(commentElements[0].querySelector('.comment-content').textContent).toBe('Bình luận cũ nhất');
+    expect(commentElements[1].querySelector('.comment-content').textContent).toBe('Bình luận giữa');
+    expect(commentElements[2].querySelector('.comment-content').textContent).toBe('Bình luận mới nhất');
+  });
+
+  it('AC5: should reject empty comment or whitespace-only comment and display error message', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    // Kiểm tra nội dung rỗng
+    component.onContentChange('');
+    component.submitComment();
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
+    expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
+
+    // Kiểm tra chỉ có khoảng trắng
+    component.onContentChange('   \t \n   ');
+    component.submitComment();
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
+    expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
+  });
+
+  it('AC6: should reject comment with 501 characters and display error message', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    const content501 = 'a'.repeat(501);
+    component.onContentChange(content501);
+    component.submitComment();
+
+    // Không gửi HTTP request nào khi validation lỗi
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
+    expect(component.errorMessage()).toBe('Nội dung bình luận không được vượt quá 500 ký tự.');
+  });
+
+  it('AC7: should successfully post comment of exactly 500 characters', async () => {
     fixture.detectChanges();
     httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
@@ -121,83 +241,36 @@ describe('CommentSection', () => {
     expect(component.errorMessage()).toBeNull();
   });
 
-  it('AC3: should reject comment with 501 characters and display error message', async () => {
+  it('AC7: should count characters correctly by Unicode code points (emojis)', async () => {
     fixture.detectChanges();
     httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
-    const content501 = 'a'.repeat(501);
-    component.onContentChange(content501);
+    // 500 emojis (mỗi emoji gồm 2 code units trong JS string .length, nhưng là 1 code point)
+    const emojis500 = '🎉'.repeat(500);
+    expect(emojis500.length).toBe(1000); // 1000 UTF-16 code units
+
+    component.onContentChange(emojis500);
+    expect(component.charCount()).toBe(500); // 500 code points
+
     component.submitComment();
-
-    // Không gửi HTTP request nào khi validation lỗi
-    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
-
-    expect(component.errorMessage()).toBe('Nội dung bình luận không được vượt quá 500 ký tự.');
-  });
-
-  it('AC4: should reject empty comment or whitespace-only comment and display error message', async () => {
-    fixture.detectChanges();
-    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
-    await fixture.whenStable();
-
-    // Kiểm tra nội dung rỗng
-    component.onContentChange('');
-    component.submitComment();
-    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
-    expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
-
-    // Kiểm tra chỉ có khoảng trắng
-    component.onContentChange('   \t \n  ');
-    component.submitComment();
-    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
-    expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
-  });
-
-  it('AC5: should display comments in chronological order (oldest first, newest at the end)', async () => {
-    fixture.detectChanges();
-    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
-    req.flush([
-      {
-        id: 'c-1',
-        postId: samplePostId,
-        userId: 'u-1',
-        authorName: 'User 1',
-        content: 'Bình luận 1',
-        createdAt: '2026-11-02T08:00:00Z'
-      },
-      {
-        id: 'c-2',
-        postId: samplePostId,
-        userId: 'u-2',
-        authorName: 'User 2',
-        content: 'Bình luận 2',
-        createdAt: '2026-11-02T09:00:00Z'
-      },
-      {
-        id: 'c-3',
-        postId: samplePostId,
-        userId: 'u-3',
-        authorName: 'User 3',
-        content: 'Bình luận 3 (mới nhất)',
-        createdAt: '2026-11-02T10:00:00Z'
-      }
-    ]);
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    postReq.flush({
+      id: 'c-emoji',
+      postId: samplePostId,
+      userId: 'user-1',
+      authorName: 'Nguyễn Văn A',
+      content: emojis500,
+      createdAt: '2026-11-02T10:15:00Z'
+    });
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const element: HTMLElement = fixture.nativeElement;
-    const commentItems = element.querySelectorAll('.comment-item');
-    expect(commentItems.length).toBe(3);
-
-    const firstContent = commentItems[0].querySelector('.comment-content')?.textContent?.trim();
-    const lastContent = commentItems[2].querySelector('.comment-content')?.textContent?.trim();
-
-    expect(firstContent).toBe('Bình luận 1');
-    expect(lastContent).toBe('Bình luận 3 (mới nhất)');
+    expect(component.errorMessage()).toBeNull();
+    expect(component.comments().length).toBe(1);
   });
 
-  it('AC7: should require login and display error when user is not logged in', async () => {
+  it('should require login and display error when user is not logged in', async () => {
     authService.logout();
     fixture.detectChanges();
     httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
@@ -210,12 +283,11 @@ describe('CommentSection', () => {
     expect(component.errorMessage()).toBe('Vui lòng đăng nhập để bình luận.');
   });
 
-  it('AC8: should display error message when trying to comment on non-existent post', async () => {
+  it('should display error message when trying to comment on non-existent post', async () => {
     const nonExistentId = '00000000-0000-0000-0000-000000000000';
     fixture.componentRef.setInput('postId', nonExistentId);
     fixture.detectChanges();
 
-    // Khởi tạo tải bình luận bài không tồn tại: server trả 404 sát thực tế
     const getReq = httpTesting.expectOne(`${apiBase}/posts/${nonExistentId}/comments`);
     getReq.flush(
       { error: 'Bài đăng không tồn tại.' },
@@ -225,7 +297,6 @@ describe('CommentSection', () => {
     fixture.detectChanges();
     expect(component.errorMessage()).toBe('Bài đăng không tồn tại.');
 
-    // Thử gửi bình luận lên bài đăng không tồn tại
     component.onContentChange('Bình luận vào bài không tồn tại');
     component.submitComment();
 
@@ -245,7 +316,6 @@ describe('CommentSection', () => {
     httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
-    // Thay đổi postId
     const newPostId = '22222222-2222-2222-2222-222222222222';
     fixture.componentRef.setInput('postId', newPostId);
     fixture.detectChanges();
@@ -308,7 +378,6 @@ describe('CommentSection', () => {
 
     const element: HTMLElement = fixture.nativeElement;
     const contentElem = element.querySelector('.comment-content');
-    // In Angular interpolation {{ }}, raw HTML is rendered as plain text content, not DOM elements
     expect(contentElem?.innerHTML).not.toContain('<script>');
     expect(contentElem?.querySelector('script')).toBeNull();
     expect(contentElem?.querySelector('b')).toBeNull();

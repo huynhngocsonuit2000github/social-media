@@ -12,13 +12,26 @@ public static class CommentEndpoints
     {
         var group = app.MapGroup("/api/posts/{postId:guid}/comments");
 
-        // GET /api/posts/{postId}/comments - Lấy danh sách bình luận (AC5: sắp xếp cũ nhất trước, mới nhất cuối)
-        group.MapGet("/", async (Guid postId, IPostRepository postRepo, ICommentRepository commentRepo) =>
+        // GET /api/posts/{postId}/comments - Lấy danh sách bình luận (AC3: sắp xếp cũ nhất trước, mới nhất cuối)
+        group.MapGet("/", async (
+            Guid postId,
+            HttpContext httpContext,
+            IPostRepository postRepo,
+            ICommentRepository commentRepo) =>
         {
             var post = await postRepo.GetByIdAsync(postId);
             if (post is null)
             {
                 return Results.NotFound(new ErrorResponse("Bài đăng không tồn tại."));
+            }
+
+            var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.User.FindFirst("userId")?.Value;
+
+            // AC2: Kiểm tra quyền xem bài đăng
+            if (!post.CanView(userId))
+            {
+                return Results.Json(new ErrorResponse("Bạn không có quyền xem bài đăng này."), statusCode: StatusCodes.Status403Forbidden);
             }
 
             var comments = await commentRepo.GetByPostIdAsync(postId);
@@ -35,27 +48,20 @@ public static class CommentEndpoints
             CreateCommentRequest? request,
             HttpContext httpContext,
             IPostRepository postRepo,
-            ICommentRepository commentRepo) =>
+            ICommentRepository commentRepo,
+            INotificationRepository notificationRepo) =>
         {
-            // AC7: Người dùng chưa đăng nhập
+            // Kiểm tra xác thực: Chưa đăng nhập
             if (httpContext.User.Identity?.IsAuthenticated != true)
             {
                 return Results.Json(new ErrorResponse("Vui lòng đăng nhập để bình luận."), statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            // AC8: Bình luận trên bài đăng không tồn tại
+            // Kiểm tra bài đăng tồn tại
             var post = await postRepo.GetByIdAsync(postId);
             if (post is null)
             {
                 return Results.NotFound(new ErrorResponse("Bài đăng không tồn tại."));
-            }
-
-            // AC3, AC4: Validate nội dung (1-500 ký tự code point, không rỗng/khoảng trắng)
-            var (isValid, errorMessage) = CommentValidator.ValidateContent(request?.Content);
-            if (!isValid)
-            {
-                // errorMessage sẽ không bao giờ null khi isValid == false theo thiết kế của CommentValidator
-                return Results.BadRequest(new ErrorResponse(errorMessage ?? "Nội dung bình luận không hợp lệ."));
             }
 
             var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -64,6 +70,20 @@ public static class CommentEndpoints
             if (string.IsNullOrWhiteSpace(userId))
             {
                 return Results.Json(new ErrorResponse("Không thể xác định danh tính người dùng."), statusCode: StatusCodes.Status401Unauthorized);
+            }
+
+            // AC2: Kiểm tra quyền xem bài đăng
+            if (!post.CanView(userId))
+            {
+                return Results.Json(new ErrorResponse("Bạn không có quyền xem bài đăng này."), statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            // AC5, AC6, AC7: Validate nội dung (1-500 ký tự code point, không rỗng/khoảng trắng)
+            var (isValid, errorMessage) = CommentValidator.ValidateContent(request?.Content);
+            if (!isValid)
+            {
+                // errorMessage sẽ không bao giờ null khi isValid == false theo thiết kế của CommentValidator
+                return Results.BadRequest(new ErrorResponse(errorMessage ?? "Nội dung bình luận không hợp lệ."));
             }
 
             var authorName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value
@@ -84,6 +104,23 @@ public static class CommentEndpoints
             };
 
             await commentRepo.AddAsync(comment);
+
+            // AC4: Khi bình luận thành công trên bài đăng của người khác, gửi thông báo cho chủ bài đăng
+            if (!string.Equals(userId, post.AuthorId, StringComparison.Ordinal))
+            {
+                var notification = new Notification
+                {
+                    RecipientUserId = post.AuthorId,
+                    ActorUserId = userId,
+                    ActorName = authorName,
+                    PostId = postId,
+                    CommentId = comment.Id,
+                    Message = $"{authorName} đã bình luận về bài viết của bạn.",
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+
+                await notificationRepo.AddAsync(notification);
+            }
 
             var response = new CommentResponse(
                 comment.Id,

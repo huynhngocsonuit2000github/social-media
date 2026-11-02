@@ -1,0 +1,132 @@
+.notification-center-container {
+  position: relative;
+  display: inline-block;
+}
+
+.notif-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notif-toggle-btn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.bell-icon {
+  font-size: 1rem;
+}
+
+.badge {
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-width: 90vw;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+}
+
+.dropdown-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  color: #0f172a;
+  background-color: #e2e8f0;
+}
+
+.dropdown-body {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.notif-loading,
+.notif-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notif-item {
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  border-left: 3px solid #3b82f6;
+  font-size: 0.85rem;
+}
+
+.notif-item:hover {
+  background-color: #f1f5f9;
+}
+
+.notif-actor {
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.notif-message {
+  color: #334155;
+  margin-bottom: 0.3rem;
+  line-height: 1.35;
+}
+
+.notif-time {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  display: block;
+}

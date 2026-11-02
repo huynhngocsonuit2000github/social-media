@@ -16,7 +16,20 @@ public record PostResponse(
     string AuthorId,
     string Title,
     string Content,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    IReadOnlyCollection<string>? AllowedViewerIds = null
+);
+
+public record NotificationResponse(
+    Guid Id,
+    string RecipientUserId,
+    string ActorUserId,
+    string ActorName,
+    Guid PostId,
+    Guid CommentId,
+    string Message,
+    DateTimeOffset CreatedAt,
+    bool IsRead
 );
 
 public record ErrorResponse(string Error);
