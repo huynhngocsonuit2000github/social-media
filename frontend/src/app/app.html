@@ -22,28 +22,14 @@
       <div class="post-header">
         <div class="post-meta">
           <span class="post-author">Người đăng: Hệ thống (author-system)</span>
-          <span class="post-status-badge" [class.badge-warning]="isTestingNonExistent()">
-            {{ isTestingNonExistent() ? 'Đang thử bài viết không tồn tại (AC8)' : 'Bài viết hợp lệ' }}
-          </span>
         </div>
-        <h2 class="post-title">
-          {{ isTestingNonExistent() ? 'Bài viết không tồn tại (ID: 00000000-0000-0000-0000-000000000000)' : 'Chào mừng bạn đến với mạng xã hội' }}
-        </h2>
+        <h2 class="post-title">Chào mừng bạn đến với mạng xã hội</h2>
       </div>
 
       <div class="post-body">
         <p>
-          {{ isTestingNonExistent()
-            ? 'Bài viết này không có trong cơ sở dữ liệu. Thử gửi bình luận sẽ kích hoạt thông báo lỗi từ chối theo AC8.'
-            : 'Đây là bài đăng mẫu. Mọi người hãy để lại bình luận để chia sẻ ý kiến và tương tác với nội dung nhé!'
-          }}
+          Đây là bài đăng mẫu. Mọi người hãy để lại bình luận để chia sẻ ý kiến và tương tác với nội dung nhé!
         </p>
-      </div>
-
-      <div class="test-controls">
-        <button class="control-btn" (click)="toggleTestingNonExistent()">
-          {{ isTestingNonExistent() ? 'Quay lại bài viết hợp lệ' : 'Chuyển sang thử bài viết không tồn tại (AC8)' }}
-        </button>
       </div>
 
       <!-- Khu vực bình luận -->

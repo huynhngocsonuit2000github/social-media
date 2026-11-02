@@ -1,9 +1,11 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using SocialMedia.Api.DTOs;
+using SocialMedia.Api.Models;
 using SocialMedia.Api.Repositories;
 using Xunit;
 
@@ -116,17 +118,19 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task AC5_GetComments_MultipleComments_OrderedByCreatedAtAscending()
     {
-        // Arrange: Create a new dedicated post to test ordering
-        using var client = CreateAuthenticatedClient();
-        var createPostResponse = await client.PostAsJsonAsync("/api/posts", new
+        // Arrange: Seed dedicated post directly via IPostRepository (tránh endpoint POST /api/posts ngoài phạm vi ticket)
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var post = new Post
         {
+            Id = Guid.NewGuid(),
             Title = "Bài đăng kiểm tra thứ tự bình luận",
             Content = "Nội dung bài đăng",
-            AuthorId = "author-1"
-        });
-        Assert.Equal(HttpStatusCode.Created, createPostResponse.StatusCode);
-        var post = await createPostResponse.Content.ReadFromJsonAsync<PostResponse>(JsonOptions);
-        Assert.NotNull(post);
+            AuthorId = "author-1",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await postRepo.AddAsync(post);
+
+        using var client = CreateAuthenticatedClient();
 
         // Post 3 comments sequentially
         var res1 = await client.PostAsJsonAsync($"/api/posts/{post.Id}/comments", new CreateCommentRequest("Bình luận thứ nhất"));
@@ -160,6 +164,59 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
         Assert.Equal("Bình luận thứ nhất", indexedComments[0].Content);
         Assert.Equal("Bình luận thứ hai", indexedComments[1].Content);
         Assert.Equal("Bình luận thứ ba", indexedComments[2].Content);
+    }
+
+    [Fact]
+    public async Task AC5_GetComments_SameTimestamp_PreservesInsertionOrderViaSequenceNumber()
+    {
+        // Arrange: Seed post and 2 comments with exact same CreatedAt timestamp
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var commentRepo = _factory.Services.GetRequiredService<ICommentRepository>();
+
+        var post = new Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài đăng kiểm tra trùng timestamp",
+            Content = "Nội dung bài đăng",
+            AuthorId = "author-same-time",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await postRepo.AddAsync(post);
+
+        var fixedTime = new DateTimeOffset(2026, 11, 2, 10, 0, 0, TimeSpan.Zero);
+        var comment1 = new Comment
+        {
+            PostId = post.Id,
+            UserId = "user-1",
+            AuthorName = "User 1",
+            Content = "Bình luận cùng giờ 1",
+            CreatedAt = fixedTime
+        };
+        var comment2 = new Comment
+        {
+            PostId = post.Id,
+            UserId = "user-2",
+            AuthorName = "User 2",
+            Content = "Bình luận cùng giờ 2",
+            CreatedAt = fixedTime
+        };
+
+        await commentRepo.AddAsync(comment1);
+        await commentRepo.AddAsync(comment2);
+
+        using var client = CreateAuthenticatedClient();
+
+        // Act
+        var listResponse = await client.GetAsync($"/api/posts/{post.Id}/comments");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var comments = await listResponse.Content.ReadFromJsonAsync<List<CommentResponse>>(JsonOptions);
+        Assert.NotNull(comments);
+        var matchedComments = comments.Where(c => c.PostId == post.Id).ToList();
+        Assert.Equal(2, matchedComments.Count);
+        Assert.Equal("Bình luận cùng giờ 1", matchedComments[0].Content);
+        Assert.Equal("Bình luận cùng giờ 2", matchedComments[1].Content);
     }
 
     [Fact]
@@ -201,27 +258,35 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task PostDeletion_CascadesDeleteComments()
     {
-        // Arrange: Create a post and add a comment
-        using var client = CreateAuthenticatedClient();
-        var postRes = await client.PostAsJsonAsync("/api/posts", new
+        // Arrange: Seed post directly via repository, then add comment via API
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var commentRepo = _factory.Services.GetRequiredService<ICommentRepository>();
+
+        var post = new Post
         {
+            Id = Guid.NewGuid(),
             Title = "Bài viết sẽ bị xóa",
             Content = "Nội dung bài viết",
-            AuthorId = "author-temp"
-        });
-        var post = await postRes.Content.ReadFromJsonAsync<PostResponse>(JsonOptions);
-        Assert.NotNull(post);
+            AuthorId = "author-temp",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await postRepo.AddAsync(post);
 
+        using var client = CreateAuthenticatedClient();
         var commentRes = await client.PostAsJsonAsync($"/api/posts/{post.Id}/comments", new CreateCommentRequest("Bình luận trước khi xóa bài"));
         Assert.Equal(HttpStatusCode.Created, commentRes.StatusCode);
 
-        // Act: Delete the post
-        var deleteRes = await client.DeleteAsync($"/api/posts/{post.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, deleteRes.StatusCode);
+        // Act: Delete post via repository (chức năng xóa bài ở tầng service/repo, PO yêu cầu cascade xóa bình luận)
+        var deleted = await postRepo.DeleteAsync(post.Id);
+        Assert.True(deleted);
 
-        // Assert: Post is gone, getting comments returns 404
+        // Assert: Post is gone, getting comments via API returns 404
         var getCommentsRes = await client.GetAsync($"/api/posts/{post.Id}/comments");
         Assert.Equal(HttpStatusCode.NotFound, getCommentsRes.StatusCode);
+
+        // Comments are deleted in repository
+        var remainingComments = await commentRepo.GetByPostIdAsync(post.Id);
+        Assert.Empty(remainingComments);
     }
 
     [Fact]
@@ -245,5 +310,26 @@ public class CommentEndpointTests : IClassFixture<WebApplicationFactory<Program>
 
         // Assert: 501 emojis should be rejected
         Assert.Equal(HttpStatusCode.BadRequest, response501.StatusCode);
+    }
+
+    [Fact]
+    public async Task SimpleAuthenticationHandler_BlockedInProductionEnvironment()
+    {
+        // Arrange: Khởi tạo app với môi trường Production
+        using var prodFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+        });
+        using var client = prodFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-User-Id", "attacker-in-prod");
+
+        var postId = InMemoryPostRepository.DefaultPostId;
+        var request = new CreateCommentRequest("Bình luận thử nghiệm trong prod");
+
+        // Act
+        var response = await client.PostAsJsonAsync($"/api/posts/{postId}/comments", request);
+
+        // Assert: SimpleAuthenticationHandler phải từ chối trong Production, trả về 401 Unauthorized
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

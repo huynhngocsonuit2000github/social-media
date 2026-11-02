@@ -5,10 +5,8 @@ import { User } from '../models/comment.model';
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly _currentUser = signal<User | null>({
-    id: 'user-1',
-    name: 'Nguyễn Văn A'
-  });
+  // Mặc định khởi tạo null (chưa đăng nhập) theo phản hồi review
+  private readonly _currentUser = signal<User | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly isLoggedIn = computed(() => this._currentUser() !== null);

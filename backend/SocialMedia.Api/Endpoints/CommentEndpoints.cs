@@ -59,19 +59,27 @@ public static class CommentEndpoints
             }
 
             var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? httpContext.User.FindFirst("userId")?.Value
-                ?? "anonymous";
+                ?? httpContext.User.FindFirst("userId")?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Results.Json(new ErrorResponse("Không thể xác định danh tính người dùng."), statusCode: StatusCodes.Status401Unauthorized);
+            }
+
             var authorName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value
                 ?? httpContext.User.FindFirst("name")?.Value
                 ?? userId;
 
-            // request và request.Content đã được kiểm tra tính hợp lệ qua CommentValidator.ValidateContent
+            // Dùng ! vì CommentValidator.ValidateContent(request?.Content) ở trên đã xác thực
+            // request và request.Content không null và không chỉ chứa khoảng trắng.
+            var validContent = request!.Content!;
+
             var comment = new Comment
             {
                 PostId = postId,
                 UserId = userId,
                 AuthorName = authorName,
-                Content = request?.Content ?? string.Empty,
+                Content = validContent,
                 CreatedAt = DateTimeOffset.UtcNow
             };
 

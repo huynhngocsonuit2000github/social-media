@@ -8,4 +8,5 @@ public class Comment
     public string AuthorName { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public long SequenceNumber { get; set; }
 }

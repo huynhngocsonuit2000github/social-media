@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { CommentSection } from './comment-section';
 import { AuthService } from '../../services/auth.service';
 import { Comment } from '../../models/comment.model';
+import { environment } from '../../../environments/environment';
 
 describe('CommentSection', () => {
   let fixture: ComponentFixture<CommentSection>;
@@ -12,6 +13,7 @@ describe('CommentSection', () => {
   let httpTesting: HttpTestingController;
 
   const samplePostId = '11111111-1111-1111-1111-111111111111';
+  const apiBase = environment.apiBaseUrl;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -25,7 +27,7 @@ describe('CommentSection', () => {
 
     httpTesting = TestBed.inject(HttpTestingController);
     authService = TestBed.inject(AuthService);
-    // Ensure default test user is logged in
+    // Khởi tạo trạng thái đã đăng nhập cho các test bình luận hợp lệ
     authService.login({ id: 'user-1', name: 'Nguyễn Văn A' });
 
     fixture = TestBed.createComponent(CommentSection);
@@ -40,7 +42,7 @@ describe('CommentSection', () => {
   it('should create component and load initial comments', async () => {
     fixture.detectChanges();
 
-    const req = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     expect(req.request.method).toBe('GET');
     req.flush([]);
 
@@ -51,7 +53,7 @@ describe('CommentSection', () => {
 
   it('AC1: should display valid comment at the end of the comment list', async () => {
     fixture.detectChanges();
-    const initReq = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const initReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     initReq.flush([
       {
         id: 'c-1',
@@ -65,11 +67,11 @@ describe('CommentSection', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    // Type a new comment
+    // Nhập bình luận mới hợp lệ
     component.onContentChange('Bình luận mới thứ hai');
     component.submitComment();
 
-    const postReq = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     expect(postReq.request.method).toBe('POST');
     expect(postReq.request.body).toEqual({ content: 'Bình luận mới thứ hai' });
 
@@ -94,14 +96,14 @@ describe('CommentSection', () => {
 
   it('AC2: should successfully post comment of exactly 500 characters', async () => {
     fixture.detectChanges();
-    httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`).flush([]);
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
     const content500 = 'a'.repeat(500);
     component.onContentChange(content500);
     component.submitComment();
 
-    const postReq = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     expect(postReq.request.body.content.length).toBe(500);
 
     postReq.flush({
@@ -121,40 +123,40 @@ describe('CommentSection', () => {
 
   it('AC3: should reject comment with 501 characters and display error message', async () => {
     fixture.detectChanges();
-    httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`).flush([]);
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
     const content501 = 'a'.repeat(501);
     component.onContentChange(content501);
     component.submitComment();
 
-    // No HTTP request should be made
-    httpTesting.expectNone(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    // Không gửi HTTP request nào khi validation lỗi
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
 
     expect(component.errorMessage()).toBe('Nội dung bình luận không được vượt quá 500 ký tự.');
   });
 
   it('AC4: should reject empty comment or whitespace-only comment and display error message', async () => {
     fixture.detectChanges();
-    httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`).flush([]);
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
-    // Test with empty string
+    // Kiểm tra nội dung rỗng
     component.onContentChange('');
     component.submitComment();
-    httpTesting.expectNone(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
     expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
 
-    // Test with whitespace only
+    // Kiểm tra chỉ có khoảng trắng
     component.onContentChange('   \t \n  ');
     component.submitComment();
-    httpTesting.expectNone(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
     expect(component.errorMessage()).toBe('Nội dung bình luận không được để trống hoặc chỉ chứa khoảng trắng.');
   });
 
   it('AC5: should display comments in chronological order (oldest first, newest at the end)', async () => {
     fixture.detectChanges();
-    const req = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     req.flush([
       {
         id: 'c-1',
@@ -198,13 +200,13 @@ describe('CommentSection', () => {
   it('AC7: should require login and display error when user is not logged in', async () => {
     authService.logout();
     fixture.detectChanges();
-    httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`).flush([]);
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
     await fixture.whenStable();
 
     component.onContentChange('Bình luận khi chưa đăng nhập');
     component.submitComment();
 
-    httpTesting.expectNone(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    httpTesting.expectNone(`${apiBase}/posts/${samplePostId}/comments`);
     expect(component.errorMessage()).toBe('Vui lòng đăng nhập để bình luận.');
   });
 
@@ -213,13 +215,21 @@ describe('CommentSection', () => {
     fixture.componentRef.setInput('postId', nonExistentId);
     fixture.detectChanges();
 
-    httpTesting.expectOne(`http://localhost:5154/api/posts/${nonExistentId}/comments`).flush([]);
+    // Khởi tạo tải bình luận bài không tồn tại: server trả 404 sát thực tế
+    const getReq = httpTesting.expectOne(`${apiBase}/posts/${nonExistentId}/comments`);
+    getReq.flush(
+      { error: 'Bài đăng không tồn tại.' },
+      { status: 404, statusText: 'Not Found' }
+    );
     await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.errorMessage()).toBe('Bài đăng không tồn tại.');
 
+    // Thử gửi bình luận lên bài đăng không tồn tại
     component.onContentChange('Bình luận vào bài không tồn tại');
     component.submitComment();
 
-    const postReq = httpTesting.expectOne(`http://localhost:5154/api/posts/${nonExistentId}/comments`);
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${nonExistentId}/comments`);
     postReq.flush(
       { error: 'Bài đăng không tồn tại.' },
       { status: 404, statusText: 'Not Found' }
@@ -230,9 +240,37 @@ describe('CommentSection', () => {
     expect(component.errorMessage()).toBe('Bài đăng không tồn tại.');
   });
 
+  it('should reload comments when postId input changes', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    // Thay đổi postId
+    const newPostId = '22222222-2222-2222-2222-222222222222';
+    fixture.componentRef.setInput('postId', newPostId);
+    fixture.detectChanges();
+
+    const newReq = httpTesting.expectOne(`${apiBase}/posts/${newPostId}/comments`);
+    newReq.flush([
+      {
+        id: 'c-new',
+        postId: newPostId,
+        userId: 'u-1',
+        authorName: 'User',
+        content: 'Bình luận bài mới',
+        createdAt: '2026-11-02T12:00:00Z'
+      }
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.comments().length).toBe(1);
+    expect(component.comments()[0].content).toBe('Bình luận bài mới');
+  });
+
   it('PO Decision: should display comment time formatted as local date/time', async () => {
     fixture.detectChanges();
-    const req = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     req.flush([
       {
         id: 'c-date',
@@ -254,7 +292,7 @@ describe('CommentSection', () => {
 
   it('PO Decision: should render text safely without executing HTML/script (XSS protection)', async () => {
     fixture.detectChanges();
-    const req = httpTesting.expectOne(`http://localhost:5154/api/posts/${samplePostId}/comments`);
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
     req.flush([
       {
         id: 'c-xss',

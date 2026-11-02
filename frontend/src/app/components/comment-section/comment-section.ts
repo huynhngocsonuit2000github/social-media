@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Comment } from '../../models/comment.model';
@@ -9,11 +9,11 @@ import { AuthService } from '../../services/auth.service';
 @Component({
   selector: 'app-comment-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe],
   templateUrl: './comment-section.html',
   styleUrl: './comment-section.css'
 })
-export class CommentSection implements OnInit {
+export class CommentSection {
   readonly postId = input.required<string>();
 
   private readonly commentService = inject(CommentService);
@@ -31,12 +31,17 @@ export class CommentSection implements OnInit {
     return [...text].length;
   });
 
-  ngOnInit(): void {
-    this.loadComments();
+  constructor() {
+    // Tự động tải lại bình luận khi postId thay đổi hoặc khi khởi tạo component
+    effect(() => {
+      const id = this.postId();
+      if (id) {
+        this.loadComments(id);
+      }
+    });
   }
 
-  loadComments(): void {
-    const id = this.postId();
+  loadComments(id: string = this.postId()): void {
     if (!id) return;
 
     this.isLoading.set(true);
@@ -57,7 +62,7 @@ export class CommentSection implements OnInit {
 
   onContentChange(value: string): void {
     this.content.set(value);
-    // Clear validation error when user types
+    // Xóa thông báo lỗi validation khi người dùng tiếp tục nhập
     if (this.errorMessage()) {
       this.errorMessage.set(null);
     }

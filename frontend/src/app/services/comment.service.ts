@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Comment, Post } from '../models/comment.model';
+import { Comment } from '../models/comment.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -10,22 +11,7 @@ import { AuthService } from './auth.service';
 export class CommentService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
-  private readonly baseUrl = 'http://localhost:5154/api';
-
-  countCodePoints(text: string): number {
-    if (!text) {
-      return 0;
-    }
-    return [...text].length;
-  }
-
-  getPosts(): Observable<Post[]> {
-    return this.http.get<Post[]>(`${this.baseUrl}/posts`);
-  }
-
-  getPost(postId: string): Observable<Post> {
-    return this.http.get<Post>(`${this.baseUrl}/posts/${postId}`);
-  }
+  private readonly baseUrl = environment.apiBaseUrl;
 
   getComments(postId: string): Observable<Comment[]> {
     return this.http.get<Comment[]>(`${this.baseUrl}/posts/${postId}/comments`);

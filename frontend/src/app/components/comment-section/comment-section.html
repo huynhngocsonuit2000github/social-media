@@ -8,7 +8,7 @@
     } @else if (comments().length === 0) {
       <div class="empty-state">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</div>
     } @else {
-      @for (comment of comments(); track comment.id; let idx = $index) {
+      @for (comment of comments(); track comment.id) {
         <article class="comment-item" [attr.data-comment-id]="comment.id">
           <div class="comment-header">
             <span class="author-name">{{ comment.authorName }}</span>
