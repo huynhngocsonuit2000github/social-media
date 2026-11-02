@@ -1,12 +1,27 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { CommentSection } from './components/comment-section/comment-section';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [RouterOutlet, CommentSection],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('frontend');
+  readonly title = signal('Social Media');
+  readonly authService = inject(AuthService);
+
+  readonly defaultPostId = '11111111-1111-1111-1111-111111111111';
+  readonly currentPostId = signal(this.defaultPostId);
+
+  toggleLogin(): void {
+    if (this.authService.isLoggedIn()) {
+      this.authService.logout();
+    } else {
+      this.authService.login({ id: 'user-1', name: 'Nguyễn Văn A' });
+    }
+  }
 }

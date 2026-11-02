@@ -1,0 +1,78 @@
+<section class="comment-section" aria-label="Khu vực bình luận">
+  <h3 class="section-title">Bình luận ({{ comments().length }})</h3>
+
+  <!-- Danh sách bình luận (AC5: hiển thị theo thứ tự thời gian, mới nhất ở cuối danh sách) -->
+  <div class="comment-list" aria-live="polite">
+    @if (isLoading()) {
+      <div class="loading-state">Đang tải bình luận...</div>
+    } @else if (comments().length === 0) {
+      <div class="empty-state">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</div>
+    } @else {
+      @for (comment of comments(); track comment.id) {
+        <article class="comment-item" [attr.data-comment-id]="comment.id">
+          <div class="comment-header">
+            <span class="author-name">{{ comment.authorName }}</span>
+            <!-- Hiển thị thời gian định dạng ngày giờ địa phương dd/MM/yyyy HH:mm theo PO -->
+            <time class="comment-time" [attr.datetime]="comment.createdAt">
+              {{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}
+            </time>
+          </div>
+          <!-- Nội dung bình luận: văn bản thuần túy, tự động escape chống XSS -->
+          <div class="comment-content">{{ comment.content }}</div>
+        </article>
+      }
+    }
+  </div>
+
+  <!-- Form nhập bình luận mới -->
+  <form class="comment-form" (ngSubmit)="submitComment()">
+    <label for="comment-input" class="form-label">Thêm bình luận của bạn</label>
+
+    <div class="textarea-wrapper">
+      <textarea
+        id="comment-input"
+        class="comment-textarea"
+        rows="3"
+        placeholder="Chia sẻ ý kiến của bạn... (tối đa 500 ký tự)"
+        [value]="content()"
+        (input)="onContentChange($any($event.target).value)"
+        [disabled]="isSubmitting()"
+      ></textarea>
+      
+      <div class="counter-and-actions">
+        <!-- Đếm ký tự theo Unicode code points -->
+        <span class="char-counter" [class.over-limit]="charCount() > 500">
+          {{ charCount() }} / 500 ký tự
+        </span>
+      </div>
+    </div>
+
+    <!-- Thông báo lỗi (AC3, AC4, AC7, AC8) -->
+    @if (errorMessage()) {
+      <div class="alert error-alert" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <!-- Thông báo thành công -->
+    @if (successMessage()) {
+      <div class="alert success-alert" role="status">
+        {{ successMessage() }}
+      </div>
+    }
+
+    <div class="form-actions">
+      <button
+        type="submit"
+        class="submit-button"
+        [disabled]="isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          <span>Đang gửi...</span>
+        } @else {
+          <span>Gửi bình luận</span>
+        }
+      </button>
+    </div>
+  </form>
+</section>
