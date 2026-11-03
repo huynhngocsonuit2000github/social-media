@@ -5,6 +5,9 @@
 
       <div class="user-panel">
         @if (authService.isLoggedIn()) {
+          <!-- Notification Center trong ứng dụng (AC4) -->
+          <app-notification-center></app-notification-center>
+
           <span class="user-info">
             Xin chào, <strong>{{ authService.currentUser()?.name }}</strong>
           </span>
@@ -33,7 +36,9 @@
       </div>
 
       <!-- Khu vực bình luận -->
-      <app-comment-section [postId]="currentPostId()"></app-comment-section>
+      <app-comment-section
+        [postId]="currentPostId()"
+      ></app-comment-section>
     </div>
   </main>
 </div>

@@ -14,7 +14,8 @@ export class CommentService {
   private readonly baseUrl = environment.apiBaseUrl;
 
   getComments(postId: string): Observable<Comment[]> {
-    return this.http.get<Comment[]>(`${this.baseUrl}/posts/${postId}/comments`);
+    const headers = new HttpHeaders(this.authService.getAuthHeaders());
+    return this.http.get<Comment[]>(`${this.baseUrl}/posts/${postId}/comments`, { headers });
   }
 
   addComment(postId: string, content: string): Observable<Comment> {

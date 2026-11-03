@@ -19,4 +19,16 @@ public record PostResponse(
     DateTimeOffset CreatedAt
 );
 
+public record NotificationResponse(
+    Guid Id,
+    string RecipientUserId,
+    string ActorUserId,
+    string ActorName,
+    Guid PostId,
+    Guid CommentId,
+    string Message,
+    DateTimeOffset CreatedAt,
+    bool IsRead
+);
+
 public record ErrorResponse(string Error);

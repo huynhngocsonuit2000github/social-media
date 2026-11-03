@@ -27,6 +27,7 @@ builder.Services.AddAuthorization();
 
 // Register Repositories
 builder.Services.AddSingleton<ICommentRepository, InMemoryCommentRepository>();
+builder.Services.AddSingleton<INotificationRepository, InMemoryNotificationRepository>();
 builder.Services.AddSingleton<IPostRepository, InMemoryPostRepository>();
 
 var app = builder.Build();
@@ -39,6 +40,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapPostEndpoints();
 app.MapCommentEndpoints();
+app.MapNotificationEndpoints();
 
 app.Run();
 

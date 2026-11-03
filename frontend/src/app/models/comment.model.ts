@@ -15,6 +15,18 @@ export interface Post {
   createdAt: string;
 }
 
+export interface AppNotification {
+  id: string;
+  recipientUserId: string;
+  actorUserId: string;
+  actorName: string;
+  postId: string;
+  commentId: string;
+  message: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
