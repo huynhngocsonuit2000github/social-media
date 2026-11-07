@@ -28,6 +28,12 @@ describe('App', () => {
     expect(compiled.querySelector('.logo')?.textContent).toContain('Social Media');
   });
 
+  it('SM-7: should have a fixed creation timestamp for the sample post by default', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(app.postCreatedAt()).toBe('2026-11-06T08:00:00.000Z');
+  });
+
   it('SM-7: should render relative time for the post', async () => {
     const fixture = TestBed.createComponent(App);
     // Thiết lập thời gian bài đăng cách đây 30 giây

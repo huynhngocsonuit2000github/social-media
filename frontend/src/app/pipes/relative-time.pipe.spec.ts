@@ -30,22 +30,34 @@ describe('RelativeTimePipe & formatRelativeTime', () => {
       expect(pipe.transform(created, T)).toBe('vừa xong');
     });
 
-    // AC 3
-    it('AC3: should display "1 phút trước" when created at T - 1 minute and 1 second', () => {
+    // AC 3: Ban đầu AC3 ghi "1 phút trước" ở mốc T - 1 phút 1 giây, nhưng theo phản hồi làm rõ của PO
+    // (ngưỡng "vừa xong" là dưới 5 phút), nên mốc T - 1m1s (< 5 phút) hiển thị là "vừa xong".
+    it('AC3 (cập nhật theo PO): should display "vừa xong" when created at T - 1 minute and 1 second (< 5 minutes)', () => {
       const created = new Date(T.getTime() - (60 + 1) * 1000);
-      expect(pipe.transform(created, T)).toBe('1 phút trước');
+      expect(pipe.transform(created, T)).toBe('vừa xong');
     });
 
-    // Boundary check: T - 60 seconds exactly
-    it('should display "1 phút trước" when created exactly at T - 60 seconds', () => {
-      const created = new Date(T.getTime() - 60 * 1000);
-      expect(pipe.transform(created, T)).toBe('1 phút trước');
+    // Boundary check for PO threshold: T - 4 minutes 59 seconds (< 300s -> "vừa xong")
+    it('PO Decision: should display "vừa xong" at boundary T - 4 minutes 59 seconds (< 300s)', () => {
+      const created = new Date(T.getTime() - (4 * 60 + 59) * 1000);
+      expect(pipe.transform(created, T)).toBe('vừa xong');
     });
 
-    // PO Decision: Floor rounding check (4 minutes 30 seconds -> 4 phút trước)
-    it('PO Decision: should round down (floor) 4 minutes 30 seconds to "4 phút trước"', () => {
-      const created = new Date(T.getTime() - (4 * 60 + 30) * 1000);
-      expect(pipe.transform(created, T)).toBe('4 phút trước');
+    // Boundary check for PO threshold: T - 5 minutes exactly (300s -> "5 phút trước")
+    it('PO Decision: should display "5 phút trước" at exactly T - 5 minutes (300s)', () => {
+      const created = new Date(T.getTime() - 5 * 60 * 1000);
+      expect(pipe.transform(created, T)).toBe('5 phút trước');
+    });
+
+    // PO Decision: Floor rounding check (5 minutes 30 seconds -> 5 phút trước)
+    it('PO Decision: should round down (floor) 5 minutes 30 seconds to "5 phút trước"', () => {
+      const created = new Date(T.getTime() - (5 * 60 + 30) * 1000);
+      expect(pipe.transform(created, T)).toBe('5 phút trước');
+    });
+
+    it('PO Decision: should round down (floor) 5 minutes 59 seconds to "5 phút trước"', () => {
+      const created = new Date(T.getTime() - (5 * 60 + 59) * 1000);
+      expect(pipe.transform(created, T)).toBe('5 phút trước');
     });
 
     // AC 4
@@ -102,27 +114,38 @@ describe('RelativeTimePipe & formatRelativeTime', () => {
       expect(pipe.transform(created, T)).toBe('7 ngày trước');
     });
 
-    // AC 10
-    it('AC10: should display full date format "DD/MM/YYYY HH:mm" when created at T - 7 days and 1 minute', () => {
-      const created = new Date(T.getTime() - (7 * 86400 + 60) * 1000);
-      const expected = formatFullDate(created);
-      expect(pipe.transform(created, T)).toBe(expected);
-      expect(expected).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    // AC 10: Vượt quá 7 ngày hiển thị theo định dạng ngày đầy đủ "DD/MM/YYYY HH:mm"
+    it('AC10: should display full date format "DD/MM/YYYY HH:mm" with explicit value when created at T - 7 days and 1 minute', () => {
+      // Dựng Date cụ thể theo giờ local: ngày 01 tháng 11 năm 2026 lúc 08:30
+      const specificCreated = new Date(2026, 10, 1, 8, 30, 0);
+      const refTime = new Date(specificCreated.getTime() + (7 * 86400 + 60) * 1000);
+      const result = pipe.transform(specificCreated, refTime);
+      expect(result).toBe('01/11/2026 08:30');
+      expect(result).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
     });
 
-    // AC 11
-    it('AC11: should display full date format "DD/MM/YYYY HH:mm" when created at T - 8 days', () => {
-      const created = new Date(T.getTime() - 8 * 86400 * 1000);
-      const expected = formatFullDate(created);
-      expect(pipe.transform(created, T)).toBe(expected);
-      expect(expected).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    // AC 11: Vượt quá 7 ngày (8 ngày) hiển thị theo định dạng ngày đầy đủ
+    it('AC11: should display full date format "DD/MM/YYYY HH:mm" with explicit value when created at T - 8 days', () => {
+      // Dựng Date cụ thể theo giờ local: ngày 15 tháng 10 năm 2026 lúc 14:05
+      const specificCreated = new Date(2026, 9, 15, 14, 5, 0);
+      const refTime = new Date(specificCreated.getTime() + 8 * 86400 * 1000);
+      const result = pipe.transform(specificCreated, refTime);
+      expect(result).toBe('15/10/2026 14:05');
+      expect(result).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    });
+  });
+
+  describe('formatFullDate helper', () => {
+    it('should format Date instance to "DD/MM/YYYY HH:mm" in local time with zero padding', () => {
+      const date = new Date(2026, 0, 5, 4, 9, 0); // 05/01/2026 04:09
+      expect(formatFullDate(date)).toBe('05/01/2026 04:09');
     });
   });
 
   describe('Edge cases and inputs', () => {
     it('should handle ISO string date representations', () => {
-      const createdIso = new Date(T.getTime() - 120 * 1000).toISOString();
-      expect(pipe.transform(createdIso, T)).toBe('2 phút trước');
+      const createdIso = new Date(T.getTime() - 10 * 60 * 1000).toISOString();
+      expect(pipe.transform(createdIso, T)).toBe('10 phút trước');
     });
 
     it('should handle epoch timestamp numbers', () => {

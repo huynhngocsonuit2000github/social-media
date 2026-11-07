@@ -18,7 +18,8 @@ export class App {
 
   readonly defaultPostId = '11111111-1111-1111-1111-111111111111';
   readonly currentPostId = signal(this.defaultPostId);
-  readonly postCreatedAt = signal(new Date(Date.now() - 3600 * 1000).toISOString());
+  // Timestamp cố định cho bài đăng mẫu trên giao diện (thay vì giá trị động theo Date.now())
+  readonly postCreatedAt = signal('2026-11-06T08:00:00.000Z');
 
   toggleLogin(): void {
     if (this.authService.isLoggedIn()) {
