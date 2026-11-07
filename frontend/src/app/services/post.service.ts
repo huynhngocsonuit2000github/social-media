@@ -23,6 +23,15 @@ export class PostService {
     return this.http.get<Post>(`${this.baseUrl}/posts/${id}`, { headers });
   }
 
+  createPost(content: string, title: string = ''): Observable<Post> {
+    const headers = new HttpHeaders(this.authService.getAuthHeaders());
+    return this.http.post<Post>(
+      `${this.baseUrl}/posts`,
+      { content, title },
+      { headers }
+    );
+  }
+
   toggleLike(postId: string): Observable<LikeResponse> {
     const headers = new HttpHeaders(this.authService.getAuthHeaders());
     return this.http.post<LikeResponse>(`${this.baseUrl}/posts/${postId}/like`, {}, { headers });

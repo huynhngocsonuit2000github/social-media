@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { CommentSection } from './components/comment-section/comment-section';
 import { NotificationCenter } from './components/notification-center/notification-center';
+import { PostCreate } from './components/post-create/post-create';
 import { AuthService } from './services/auth.service';
 import { PostService } from './services/post.service';
 import { Post } from './models/comment.model';
@@ -10,7 +11,7 @@ import { Post } from './models/comment.model';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommentSection, NotificationCenter, DatePipe],
+  imports: [RouterOutlet, CommentSection, NotificationCenter, PostCreate, DatePipe],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -75,6 +76,10 @@ export class App {
         }
       }
     });
+  }
+
+  onPostCreated(newPost: Post): void {
+    this.posts.update(list => [newPost, ...list]);
   }
 
   toggleLike(post: Post): void {

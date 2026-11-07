@@ -32,6 +32,15 @@ export class CommentSection {
     return [...text].length;
   });
 
+  readonly remainingChars = computed(() => {
+    return 500 - this.charCount();
+  });
+
+  readonly isContentValid = computed(() => {
+    const text = this.content();
+    return text.trim().length > 0 && this.charCount() <= 500;
+  });
+
   constructor() {
     // Tự động tải lại bình luận khi postId thay đổi hoặc khi khởi tạo component
     effect(() => {

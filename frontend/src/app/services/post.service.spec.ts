@@ -102,4 +102,29 @@ describe('PostService', () => {
     expect(req.request.headers.get('X-User-Id')).toBe('user-2');
     req.flush(mockLikeResponse);
   });
+
+  it('should send POST request to create a post', () => {
+    authService.login({ id: 'user-3', name: 'User 3' });
+
+    const mockPost: Post = {
+      id: 'post-new',
+      authorId: 'user-3',
+      title: 'New Title',
+      content: 'New Content',
+      createdAt: '2026-11-06T12:00:00Z',
+      likeCount: 0,
+      isLiked: false
+    };
+
+    service.createPost('New Content', 'New Title').subscribe(post => {
+      expect(post.id).toBe('post-new');
+      expect(post.content).toBe('New Content');
+    });
+
+    const req = httpTesting.expectOne(`${baseUrl}/posts`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ content: 'New Content', title: 'New Title' });
+    expect(req.request.headers.get('X-User-Id')).toBe('user-3');
+    req.flush(mockPost);
+  });
 });

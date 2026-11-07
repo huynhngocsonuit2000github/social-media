@@ -24,6 +24,9 @@
     @if (isLoginRoute()) {
       <router-outlet />
     } @else {
+      <!-- Khu vực tạo bài đăng mới (áp dụng giới hạn ký tự) -->
+      <app-post-create (postCreated)="onPostCreated($event)"></app-post-create>
+
       @if (isLoading() && posts().length === 0) {
         <div class="loading-state">Đang tải danh sách bài đăng...</div>
       } @else if (posts().length === 0) {
