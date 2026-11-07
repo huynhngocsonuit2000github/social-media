@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Post } from '../models/comment.model';
+import { Post, LikeResponse } from '../models/comment.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -30,5 +30,10 @@ export class PostService {
       { content, title },
       { headers }
     );
+  }
+
+  toggleLike(postId: string): Observable<LikeResponse> {
+    const headers = new HttpHeaders(this.authService.getAuthHeaders());
+    return this.http.post<LikeResponse>(`${this.baseUrl}/posts/${postId}/like`, {}, { headers });
   }
 }

@@ -13,6 +13,14 @@ export interface Post {
   title: string;
   content: string;
   createdAt: string;
+  likeCount?: number;
+  isLiked?: boolean;
+}
+
+export interface LikeResponse {
+  postId: string;
+  isLiked: boolean;
+  likeCount: number;
 }
 
 export interface AppNotification {

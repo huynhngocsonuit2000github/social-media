@@ -18,7 +18,15 @@ public record PostResponse(
     string AuthorId,
     string Title,
     string Content,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    int LikeCount = 0,
+    bool IsLiked = false
+);
+
+public record LikeResponse(
+    Guid PostId,
+    bool IsLiked,
+    int LikeCount
 );
 
 public record NotificationResponse(
