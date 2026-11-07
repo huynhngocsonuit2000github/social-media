@@ -182,6 +182,78 @@ describe('CommentSection', () => {
     expect(commentElements[2].querySelector('.comment-content').textContent).toBe('Bình luận mới nhất');
   });
 
+  it('AC1: should display correct remaining char count and enable submit button when comment length is 1 to 500', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    component.onContentChange('Bình luận 15 ký tự!');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // 500 - 18 = 482
+    const expectedRemaining = 500 - [...'Bình luận 15 ký tự!'].length;
+    expect(component.remainingChars()).toBe(expectedRemaining);
+    const counterElem = fixture.nativeElement.querySelector('[data-testid="comment-char-counter"]');
+    expect(counterElem.textContent.trim()).toBe(String(expectedRemaining));
+
+    const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('button.submit-button');
+    expect(submitBtn.disabled).toBe(false);
+  });
+
+  it('AC2: should display negative remaining count (-1) and disable submit button when comment is 501 characters', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    const content501 = 'c'.repeat(501);
+    component.onContentChange(content501);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.remainingChars()).toBe(-1);
+    const counterElem = fixture.nativeElement.querySelector('[data-testid="comment-char-counter"]');
+    expect(counterElem.textContent.trim()).toBe('-1');
+    expect(counterElem.classList.contains('over-limit')).toBe(true);
+
+    const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('button.submit-button');
+    expect(submitBtn.disabled).toBe(true);
+  });
+
+  it('AC3: should display 500 remaining characters and disable submit button when comment is empty string', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    component.onContentChange('');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.remainingChars()).toBe(500);
+    const counterElem = fixture.nativeElement.querySelector('[data-testid="comment-char-counter"]');
+    expect(counterElem.textContent.trim()).toBe('500');
+
+    const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('button.submit-button');
+    expect(submitBtn.disabled).toBe(true);
+  });
+
+  it('AC4: should display correct remaining characters and disable submit button when comment is whitespace only', async () => {
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
+    await fixture.whenStable();
+
+    component.onContentChange('   ');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.remainingChars()).toBe(497);
+    const counterElem = fixture.nativeElement.querySelector('[data-testid="comment-char-counter"]');
+    expect(counterElem.textContent.trim()).toBe('497');
+
+    const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('button.submit-button');
+    expect(submitBtn.disabled).toBe(true);
+  });
+
   it('AC5: should reject empty comment or whitespace-only comment and display error message', async () => {
     fixture.detectChanges();
     httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`).flush([]);
