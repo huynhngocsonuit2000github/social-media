@@ -2,9 +2,11 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { App } from './app';
 import { AuthService } from './services/auth.service';
 import { PostService } from './services/post.service';
+import { CommentSection } from './components/comment-section/comment-section';
 import { Post, LikeResponse } from './models/comment.model';
 import { environment } from '../environments/environment';
 
@@ -251,5 +253,141 @@ describe('App', () => {
     // Assert: Trạng thái và số lượt thích không thay đổi
     expect(app.posts()[0].likeCount).toBe(5);
     expect(app.posts()[0].isLiked).toBe(false);
+  });
+
+  it('AC1: should display "0 bình luận" on post UI when post has 0 comments', async () => {
+    // Arrange: Bài đăng có 0 bình luận
+    const postWith0Comments: Post = {
+      id: 'p-0-comment',
+      authorId: 'author-0',
+      title: 'Bài viết chưa có bình luận',
+      content: 'Nội dung bài viết 0 bình luận.',
+      createdAt: '2026-11-06T10:00:00Z',
+      likeCount: 0,
+      isLiked: false,
+      commentCount: 0
+    };
+
+    // Act
+    setupAndFlushPosts([postWith0Comments]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Assert: Hiển thị "0 bình luận" trên giao diện bài đăng
+    const commentCountElem = fixture.nativeElement.querySelector('[data-testid="comment-count-p-0-comment"]');
+    expect(commentCountElem).toBeTruthy();
+    expect(commentCountElem.textContent.trim()).toBe('0 bình luận');
+  });
+
+  it('AC2: should display "1 bình luận" on post UI when post has exactly 1 comment', async () => {
+    // Arrange: Bài đăng có đúng 1 bình luận
+    const postWith1Comment: Post = {
+      id: 'p-1-comment',
+      authorId: 'author-1',
+      title: 'Bài viết có đúng một bình luận',
+      content: 'Nội dung bài viết 1 bình luận.',
+      createdAt: '2026-11-06T10:00:00Z',
+      likeCount: 2,
+      isLiked: false,
+      commentCount: 1
+    };
+
+    // Act
+    setupAndFlushPosts([postWith1Comment]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Assert: Hiển thị "1 bình luận" trên giao diện bài đăng
+    const commentCountElem = fixture.nativeElement.querySelector('[data-testid="comment-count-p-1-comment"]');
+    expect(commentCountElem).toBeTruthy();
+    expect(commentCountElem.textContent.trim()).toBe('1 bình luận');
+  });
+
+  it('AC3: should display "N bình luận" (e.g. "5 bình luận") on post UI when post has N (>1) comments', async () => {
+    // Arrange: Bài đăng có N=5 bình luận
+    const postWith5Comments: Post = {
+      id: 'p-5-comments',
+      authorId: 'author-5',
+      title: 'Bài viết có năm bình luận',
+      content: 'Nội dung bài viết 5 bình luận.',
+      createdAt: '2026-11-06T10:00:00Z',
+      likeCount: 7,
+      isLiked: false,
+      commentCount: 5
+    };
+
+    // Act
+    setupAndFlushPosts([postWith5Comments]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Assert: Hiển thị "5 bình luận" trên giao diện bài đăng
+    const commentCountElem = fixture.nativeElement.querySelector('[data-testid="comment-count-p-5-comments"]');
+    expect(commentCountElem).toBeTruthy();
+    expect(commentCountElem.textContent.trim()).toBe('5 bình luận');
+  });
+
+  it('AC4: should update comment count to "M+1 bình luận" without reloading page or refetching post list when comment is successfully submitted', async () => {
+    // Arrange: Người dùng đăng nhập và bài đăng ban đầu có M=3 bình luận
+    authService.login({ id: 'user-1', name: 'Nguyễn Văn A' });
+    const postId = 'p-m-comments';
+    const postWithMComments: Post = {
+      id: postId,
+      authorId: 'author-m',
+      title: 'Bài viết kiểm tra cập nhật bình luận',
+      content: 'Nội dung bài viết ban đầu có 3 bình luận.',
+      createdAt: '2026-11-06T10:00:00Z',
+      likeCount: 3,
+      isLiked: false,
+      commentCount: 3
+    };
+
+    setupAndFlushPosts([postWithMComments]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Flush initial GET comments request created by CommentSection for postWithMComments
+    const getCommentsReq = httpTesting.expectOne(`${baseUrl}/posts/${postId}/comments`);
+    expect(getCommentsReq.request.method).toBe('GET');
+    getCommentsReq.flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const commentCountElem = fixture.nativeElement.querySelector(`[data-testid="comment-count-${postId}"]`);
+    expect(commentCountElem.textContent.trim()).toBe('3 bình luận');
+
+    // Act: Nhập và gửi một bình luận mới thông qua CommentSection của bài đăng
+    const commentSectionDebug = fixture.debugElement.query(By.directive(CommentSection));
+    expect(commentSectionDebug).toBeTruthy();
+    const commentSectionComp = commentSectionDebug.componentInstance as CommentSection;
+    commentSectionComp.onContentChange('Bình luận mới thêm');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    commentSectionComp.submitComment();
+    fixture.detectChanges();
+
+    // Xử lý request POST comment lên backend
+    const commentPostReq = httpTesting.expectOne(`${baseUrl}/posts/${postId}/comments`);
+    expect(commentPostReq.request.method).toBe('POST');
+    commentPostReq.flush({
+      id: 'c-new-id',
+      postId: postId,
+      userId: 'user-1',
+      authorName: 'Nguyễn Văn A',
+      content: 'Bình luận mới thêm',
+      createdAt: new Date().toISOString()
+    });
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Assert:
+    // 1. Số bình luận hiển thị trên giao diện cập nhật thành "4 bình luận" (M+1 bình luận)
+    expect(commentCountElem.textContent.trim()).toBe('4 bình luận');
+    expect(app.posts()[0].commentCount).toBe(4);
+
+    // 2. Không gọi lại API danh sách bài đăng (không có request nào tới /posts)
+    httpTesting.expectNone(`${baseUrl}/posts`);
   });
 });

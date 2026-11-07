@@ -94,6 +94,34 @@ describe('CommentSection', () => {
     expect(component.errorMessage()).toBeNull();
   });
 
+  it('SM-8: should emit commentAdded output when comment is submitted successfully', async () => {
+    fixture.detectChanges();
+    const initReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    initReq.flush([]);
+    await fixture.whenStable();
+
+    const emittedComments: Comment[] = [];
+    component.commentAdded.subscribe(c => emittedComments.push(c));
+
+    component.onContentChange('Bình luận kiểm tra event emit');
+    component.submitComment();
+
+    const postReq = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    const newComment: Comment = {
+      id: 'c-emit-1',
+      postId: samplePostId,
+      userId: 'user-1',
+      authorName: 'Nguyễn Văn A',
+      content: 'Bình luận kiểm tra event emit',
+      createdAt: '2026-11-07T10:00:00Z'
+    };
+    postReq.flush(newComment);
+    await fixture.whenStable();
+
+    expect(emittedComments.length).toBe(1);
+    expect(emittedComments[0].id).toBe('c-emit-1');
+  });
+
   it('AC2: should reject comment when user lacks permission to view post', async () => {
     fixture.componentRef.setInput('hasViewPermission', false);
     fixture.detectChanges();

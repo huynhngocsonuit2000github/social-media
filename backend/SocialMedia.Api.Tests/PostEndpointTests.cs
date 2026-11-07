@@ -137,4 +137,142 @@ public class PostEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         // Assert: 401 Unauthorized
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task AC5_GetPosts_ValidRequest_EachPostInJsonContainsCommentCountFieldAsInteger()
+    {
+        // Arrange
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var commentRepo = _factory.Services.GetRequiredService<ICommentRepository>();
+
+        // Tạo 3 bài viết: 0 bình luận, 1 bình luận, 5 bình luận
+        var post0 = new Models.Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài viết 0 bình luận",
+            Content = "Nội dung bài viết không có bình luận",
+            AuthorId = "author-ac5-0",
+            CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-30)
+        };
+        var post1 = new Models.Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài viết 1 bình luận",
+            Content = "Nội dung bài viết có đúng 1 bình luận",
+            AuthorId = "author-ac5-1",
+            CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-20)
+        };
+        var post5 = new Models.Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài viết 5 bình luận",
+            Content = "Nội dung bài viết có 5 bình luận",
+            AuthorId = "author-ac5-5",
+            CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-10)
+        };
+
+        await postRepo.AddAsync(post0);
+        await postRepo.AddAsync(post1);
+        await postRepo.AddAsync(post5);
+
+        // Thêm 1 bình luận cho post1
+        await commentRepo.AddAsync(new Models.Comment
+        {
+            PostId = post1.Id,
+            UserId = "user-c1",
+            AuthorName = "User 1",
+            Content = "Bình luận duy nhất",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        // Thêm 5 bình luận cho post5
+        for (int i = 1; i <= 5; i++)
+        {
+            await commentRepo.AddAsync(new Models.Comment
+            {
+                PostId = post5.Id,
+                UserId = $"user-c5-{i}",
+                AuthorName = $"User 5-{i}",
+                Content = $"Bình luận số {i}",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        using var client = _factory.CreateClient();
+
+        // Act: Gửi yêu cầu hợp lệ tới API danh sách bài đăng
+        var response = await client.GetAsync("/api/posts");
+
+        // Assert: Trạng thái 200 OK
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Kiểm tra phản hồi JSON thô để chứng minh trường `commentCount` có kiểu số nguyên (AC5)
+        var jsonString = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(jsonString);
+        var rootArray = jsonDoc.RootElement;
+        Assert.Equal(JsonValueKind.Array, rootArray.ValueKind);
+
+        // Mỗi đối tượng bài đăng trong phản hồi JSON phải chứa trường commentCount kiểu số nguyên
+        foreach (var element in rootArray.EnumerateArray())
+        {
+            Assert.True(element.TryGetProperty("commentCount", out var commentCountProp),
+                "Mỗi đối tượng bài đăng trong phản hồi JSON phải chứa trường 'commentCount'.");
+            Assert.Equal(JsonValueKind.Number, commentCountProp.ValueKind);
+            Assert.True(commentCountProp.TryGetInt32(out _), "Trường 'commentCount' phải là kiểu số nguyên.");
+        }
+
+        // Kiểm tra deserialize và giá trị số lượng bình luận cho từng bài viết cụ thể
+        var postResponses = JsonSerializer.Deserialize<List<PostResponse>>(jsonString, JsonOptions);
+        Assert.NotNull(postResponses);
+
+        var retrieved0 = postResponses.FirstOrDefault(p => p.Id == post0.Id);
+        Assert.NotNull(retrieved0);
+        Assert.Equal(0, retrieved0.CommentCount);
+
+        var retrieved1 = postResponses.FirstOrDefault(p => p.Id == post1.Id);
+        Assert.NotNull(retrieved1);
+        Assert.Equal(1, retrieved1.CommentCount);
+
+        var retrieved5 = postResponses.FirstOrDefault(p => p.Id == post5.Id);
+        Assert.NotNull(retrieved5);
+        Assert.Equal(5, retrieved5.CommentCount);
+    }
+
+    [Fact]
+    public async Task AC5_GetPostById_ValidRequest_ContainsCommentCountFieldAsInteger()
+    {
+        // Arrange
+        var postRepo = _factory.Services.GetRequiredService<IPostRepository>();
+        var commentRepo = _factory.Services.GetRequiredService<ICommentRepository>();
+
+        var post = new Models.Post
+        {
+            Id = Guid.NewGuid(),
+            Title = "Bài viết chi tiết",
+            Content = "Nội dung bài viết",
+            AuthorId = "author-single",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await postRepo.AddAsync(post);
+
+        await commentRepo.AddAsync(new Models.Comment
+        {
+            PostId = post.Id,
+            UserId = "user-single",
+            AuthorName = "User Single",
+            Content = "Bình luận mẫu",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        using var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync($"/api/posts/{post.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var postResponse = await response.Content.ReadFromJsonAsync<PostResponse>(JsonOptions);
+        Assert.NotNull(postResponse);
+        Assert.Equal(1, postResponse.CommentCount);
+    }
 }

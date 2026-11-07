@@ -15,7 +15,8 @@ public static class PostEndpoints
         group.MapGet("/", async (
             HttpContext httpContext,
             IPostRepository postRepo,
-            IPostLikeRepository likeRepo) =>
+            IPostLikeRepository likeRepo,
+            ICommentRepository commentRepo) =>
         {
             var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? httpContext.User.FindFirst("userId")?.Value;
@@ -26,7 +27,8 @@ public static class PostEndpoints
             {
                 var likeCount = await likeRepo.GetLikeCountAsync(p.Id);
                 var isLiked = !string.IsNullOrEmpty(userId) && await likeRepo.HasUserLikedAsync(p.Id, userId);
-                response.Add(new PostResponse(p.Id, p.AuthorId, p.Title, p.Content, p.CreatedAt, likeCount, isLiked));
+                var commentCount = await commentRepo.GetCountByPostIdAsync(p.Id);
+                response.Add(new PostResponse(p.Id, p.AuthorId, p.Title, p.Content, p.CreatedAt, likeCount, isLiked, commentCount));
             }
 
             return Results.Ok(response);
@@ -36,7 +38,8 @@ public static class PostEndpoints
             Guid id,
             HttpContext httpContext,
             IPostRepository postRepo,
-            IPostLikeRepository likeRepo) =>
+            IPostLikeRepository likeRepo,
+            ICommentRepository commentRepo) =>
         {
             var post = await postRepo.GetByIdAsync(id);
             if (post is null)
@@ -49,7 +52,8 @@ public static class PostEndpoints
 
             var likeCount = await likeRepo.GetLikeCountAsync(post.Id);
             var isLiked = !string.IsNullOrEmpty(userId) && await likeRepo.HasUserLikedAsync(post.Id, userId);
-            var response = new PostResponse(post.Id, post.AuthorId, post.Title, post.Content, post.CreatedAt, likeCount, isLiked);
+            var commentCount = await commentRepo.GetCountByPostIdAsync(post.Id);
+            var response = new PostResponse(post.Id, post.AuthorId, post.Title, post.Content, post.CreatedAt, likeCount, isLiked, commentCount);
             return Results.Ok(response);
         });
 

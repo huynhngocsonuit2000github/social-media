@@ -72,7 +72,8 @@ export class App {
               content: 'Đây là bài đăng mẫu. Mọi người hãy để lại bình luận để chia sẻ ý kiến nhé!',
               createdAt: new Date().toISOString(),
               likeCount: 0,
-              isLiked: false
+              isLiked: false,
+              commentCount: 0
             }
           ]);
         }
@@ -82,6 +83,19 @@ export class App {
 
   onPostCreated(newPost: Post): void {
     this.posts.update(list => [newPost, ...list]);
+  }
+
+  onCommentAdded(postId: string): void {
+    // AC4: Cập nhật commentCount thành M+1 khi gửi bình luận thành công mà không tải lại trang
+    this.posts.update(list => list.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          commentCount: (p.commentCount ?? 0) + 1
+        };
+      }
+      return p;
+    }));
   }
 
   toggleLike(post: Post): void {
