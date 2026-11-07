@@ -16,11 +16,11 @@ export function formatFullDate(date: Date): string {
  * Tính toán chuỗi thời gian tương đối dựa trên thời gian tham chiếu (mặc định là hiện tại).
  *
  * Quy tắc:
- * - < 5 phút (< 300s, bao gồm thời gian tương lai do lệch clock): "vừa xong" (theo phản hồi làm rõ của PO)
- * - 5 phút đến < 3600 giây (dưới 1 giờ): "X phút trước" (làm tròn xuống)
- * - 3600 giây đến < 86400 giây (dưới 24 giờ): "Y giờ trước" (làm tròn xuống)
- * - 86400 giây đến <= 7 ngày (7 * 86400 giây): "Z ngày trước" (làm tròn xuống)
- * - > 7 ngày: hiển thị theo định dạng ngày đầy đủ "DD/MM/YYYY HH:mm"
+ * - < 60 giây (bao gồm thời gian tương lai do lệch clock): "vừa xong" (AC1, AC2)
+ * - 60 giây đến < 3600 giây (dưới 1 giờ): "X phút trước" (làm tròn xuống theo AC3, AC4, AC5)
+ * - 3600 giây đến < 86400 giây (dưới 24 giờ): "Y giờ trước" (AC6, AC7)
+ * - 86400 giây đến <= 7 ngày (7 * 86400 giây): "Z ngày trước" (AC8, AC9)
+ * - > 7 ngày: hiển thị theo định dạng ngày đầy đủ "DD/MM/YYYY HH:mm" (AC10, AC11)
  */
 export function formatRelativeTime(
   value: Date | string | number | null | undefined,
@@ -35,7 +35,7 @@ export function formatRelativeTime(
     return '';
   }
 
-  const ref = referenceTime
+  const ref = referenceTime !== undefined && referenceTime !== null
     ? (referenceTime instanceof Date ? referenceTime : new Date(referenceTime))
     : new Date();
 
@@ -52,13 +52,12 @@ export function formatRelativeTime(
 
   const diffInSeconds = Math.floor(diffInMs / 1000);
 
-  // Dưới 5 phút (< 300s): "vừa xong" theo phản hồi làm rõ của Product Owner (PO)
-  const FIVE_MINUTES_IN_SECONDS = 5 * 60; // 300 giây
-  if (diffInSeconds < FIVE_MINUTES_IN_SECONDS) {
+  // Dưới 60 giây (< 1 phút): "vừa xong" (AC1, AC2)
+  if (diffInSeconds < 60) {
     return 'vừa xong';
   }
 
-  // Từ 5 phút đến dưới 60 phút: "X phút trước" (làm tròn xuống theo PO, AC4, AC5)
+  // Từ 1 phút (60s) đến dưới 60 phút (3600s): "X phút trước" (AC3, AC4, AC5)
   if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
     return `${minutes} phút trước`;

@@ -30,34 +30,22 @@ describe('RelativeTimePipe & formatRelativeTime', () => {
       expect(pipe.transform(created, T)).toBe('vừa xong');
     });
 
-    // AC 3: Ban đầu AC3 ghi "1 phút trước" ở mốc T - 1 phút 1 giây, nhưng theo phản hồi làm rõ của PO
-    // (ngưỡng "vừa xong" là dưới 5 phút), nên mốc T - 1m1s (< 5 phút) hiển thị là "vừa xong".
-    it('AC3 (cập nhật theo PO): should display "vừa xong" when created at T - 1 minute and 1 second (< 5 minutes)', () => {
+    // AC 3
+    it('AC3: should display "1 phút trước" when created at T - 1 minute and 1 second', () => {
       const created = new Date(T.getTime() - (60 + 1) * 1000);
-      expect(pipe.transform(created, T)).toBe('vừa xong');
+      expect(pipe.transform(created, T)).toBe('1 phút trước');
     });
 
-    // Boundary check for PO threshold: T - 4 minutes 59 seconds (< 300s -> "vừa xong")
-    it('PO Decision: should display "vừa xong" at boundary T - 4 minutes 59 seconds (< 300s)', () => {
-      const created = new Date(T.getTime() - (4 * 60 + 59) * 1000);
-      expect(pipe.transform(created, T)).toBe('vừa xong');
+    // Boundary check: T - 60 seconds exactly
+    it('should display "1 phút trước" when created exactly at T - 60 seconds', () => {
+      const created = new Date(T.getTime() - 60 * 1000);
+      expect(pipe.transform(created, T)).toBe('1 phút trước');
     });
 
-    // Boundary check for PO threshold: T - 5 minutes exactly (300s -> "5 phút trước")
-    it('PO Decision: should display "5 phút trước" at exactly T - 5 minutes (300s)', () => {
-      const created = new Date(T.getTime() - 5 * 60 * 1000);
-      expect(pipe.transform(created, T)).toBe('5 phút trước');
-    });
-
-    // PO Decision: Floor rounding check (5 minutes 30 seconds -> 5 phút trước)
-    it('PO Decision: should round down (floor) 5 minutes 30 seconds to "5 phút trước"', () => {
-      const created = new Date(T.getTime() - (5 * 60 + 30) * 1000);
-      expect(pipe.transform(created, T)).toBe('5 phút trước');
-    });
-
-    it('PO Decision: should round down (floor) 5 minutes 59 seconds to "5 phút trước"', () => {
-      const created = new Date(T.getTime() - (5 * 60 + 59) * 1000);
-      expect(pipe.transform(created, T)).toBe('5 phút trước');
+    // PO Decision: Floor rounding check (4 minutes 30 seconds -> 4 phút trước)
+    it('PO Decision: should round down (floor) 4 minutes 30 seconds to "4 phút trước"', () => {
+      const created = new Date(T.getTime() - (4 * 60 + 30) * 1000);
+      expect(pipe.transform(created, T)).toBe('4 phút trước');
     });
 
     // AC 4
@@ -172,6 +160,15 @@ describe('RelativeTimePipe & formatRelativeTime', () => {
       // 10 giây trước thời điểm hiện tại
       const recent = new Date(Date.now() - 10 * 1000);
       expect(pipe.transform(recent)).toBe('vừa xong');
+    });
+
+    it('should respect referenceTime when it is 0 (epoch timestamp)', () => {
+      // 0 đại diện cho mốc epoch 1970-01-01T00:00:00.000Z
+      const epoch = new Date(0);
+      expect(pipe.transform(epoch, 0)).toBe('vừa xong');
+
+      const twoMinutesAfterEpoch = 120 * 1000;
+      expect(pipe.transform(epoch, twoMinutesAfterEpoch)).toBe('2 phút trước');
     });
   });
 
