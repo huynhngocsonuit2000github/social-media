@@ -1,17 +1,17 @@
 import { Component, effect, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { CommentSection } from './components/comment-section/comment-section';
 import { NotificationCenter } from './components/notification-center/notification-center';
 import { PostCreate } from './components/post-create/post-create';
 import { AuthService } from './services/auth.service';
+import { RelativeTimePipe } from './pipes/relative-time.pipe';
 import { PostService } from './services/post.service';
 import { Post } from './models/comment.model';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommentSection, NotificationCenter, PostCreate, DatePipe],
+  imports: [RouterOutlet, CommentSection, NotificationCenter, PostCreate, RelativeTimePipe],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -23,6 +23,8 @@ export class App {
 
   readonly defaultPostId = '11111111-1111-1111-1111-111111111111';
   readonly currentPostId = signal(this.defaultPostId);
+  // Timestamp cố định cho bài đăng mẫu trên giao diện (thay vì giá trị động theo Date.now())
+  readonly postCreatedAt = signal('2026-11-06T08:00:00.000Z');
 
   readonly posts = signal<Post[]>([]);
   readonly isLoading = signal<boolean>(false);

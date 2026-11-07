@@ -14,9 +14,9 @@
         <article class="comment-item" [attr.data-comment-id]="comment.id">
           <div class="comment-header">
             <span class="author-name">{{ comment.authorName }}</span>
-            <!-- Hiển thị thời gian định dạng ngày giờ địa phương dd/MM/yyyy HH:mm -->
+            <!-- Hiển thị thời gian tương đối cho bình luận (SM-7) -->
             <time class="comment-time" [attr.datetime]="comment.createdAt">
-              {{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              {{ comment.createdAt | relativeTime }}
             </time>
           </div>
           <!-- Nội dung bình luận: văn bản thuần túy, tự động escape chống XSS -->

@@ -102,6 +102,39 @@ describe('App', () => {
     expect(compiled.querySelector('.logo')?.textContent).toContain('Social Media');
   });
 
+  it('SM-7: should render relative time for the post', async () => {
+    // Thiết lập thời gian bài đăng cách đây 30 giây
+    const initialTime = new Date(Date.now() - 30 * 1000).toISOString();
+    app.postCreatedAt.set(initialTime);
+
+    setupAndFlushPosts([
+      {
+        id: app.defaultPostId,
+        authorId: 'author-system',
+        title: 'Chào mừng bạn đến với mạng xã hội',
+        content: 'Đây là bài đăng mẫu.',
+        createdAt: app.postCreatedAt(),
+        likeCount: 0,
+        isLiked: false
+      }
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const postTime = compiled.querySelector('.post-time');
+    expect(postTime).toBeTruthy();
+    expect(postTime?.textContent?.trim()).toBe('vừa xong');
+
+    // Cập nhật thời gian bài đăng thành 1 giờ trước
+    const oneHourAgo = new Date(Date.now() - (3600 + 1) * 1000).toISOString();
+    app.postCreatedAt.set(oneHourAgo);
+    app.posts.update(posts => [{ ...posts[0], createdAt: oneHourAgo }]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(postTime?.textContent?.trim()).toBe('1 giờ trước');
+  });
+
   it('AC3: should render list of posts with each post displaying like count and current user like status', async () => {
     // Arrange: Đăng nhập
     authService.login({ id: 'user-1', name: 'Nguyễn Văn A' });

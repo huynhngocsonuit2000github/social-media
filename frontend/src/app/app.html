@@ -38,7 +38,7 @@
               <div class="post-header">
                 <div class="post-meta">
                   <span class="post-author">Người đăng: {{ post.authorId }}</span>
-                  <span class="post-time">{{ post.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <time class="post-time" [attr.datetime]="post.createdAt">{{ post.createdAt | relativeTime }}</time>
                 </div>
                 <h2 class="post-title">{{ post.title }}</h2>
               </div>
