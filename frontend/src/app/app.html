@@ -25,6 +25,7 @@
       <div class="post-header">
         <div class="post-meta">
           <span class="post-author">Người đăng: Hệ thống (author-system)</span>
+          <time class="post-time" [attr.datetime]="postCreatedAt()">{{ postCreatedAt() | relativeTime }}</time>
         </div>
         <h2 class="post-title">Chào mừng bạn đến với mạng xã hội</h2>
       </div>

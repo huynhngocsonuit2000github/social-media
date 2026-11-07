@@ -1,15 +1,15 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Comment } from '../../models/comment.model';
 import { CommentService } from '../../services/comment.service';
 import { AuthService } from '../../services/auth.service';
+import { RelativeTimePipe } from '../../pipes/relative-time.pipe';
 
 @Component({
   selector: 'app-comment-section',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, RelativeTimePipe],
   templateUrl: './comment-section.html',
   styleUrl: './comment-section.css'
 })

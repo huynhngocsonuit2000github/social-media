@@ -338,9 +338,11 @@ describe('CommentSection', () => {
     expect(component.comments()[0].content).toBe('Bình luận bài mới');
   });
 
-  it('PO Decision: should display comment time formatted as local date/time', async () => {
+  it('PO Decision & SM-7: should display comment time formatted as local date/time when older than 7 days', async () => {
     fixture.detectChanges();
     const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    // Tạo comment cách đây 10 ngày (> 7 ngày -> hiển thị đầy đủ ngày giờ dd/MM/yyyy HH:mm)
+    const tenDaysAgo = new Date(Date.now() - 10 * 86400 * 1000).toISOString();
     req.flush([
       {
         id: 'c-date',
@@ -348,7 +350,7 @@ describe('CommentSection', () => {
         userId: 'u-1',
         authorName: 'User Date',
         content: 'Nội dung kiểm tra ngày giờ',
-        createdAt: '2026-11-02T14:30:00Z'
+        createdAt: tenDaysAgo
       }
     ]);
     await fixture.whenStable();
@@ -358,6 +360,40 @@ describe('CommentSection', () => {
     const timeElem = element.querySelector('.comment-time');
     expect(timeElem).toBeTruthy();
     expect(timeElem?.textContent?.trim()).toMatch(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/);
+  });
+
+  it('SM-7: should display relative time for recent comments', async () => {
+    fixture.detectChanges();
+    const req = httpTesting.expectOne(`${apiBase}/posts/${samplePostId}/comments`);
+    const justNow = new Date(Date.now() - 30 * 1000).toISOString(); // 30s ago -> vừa xong
+    const oneHourAgo = new Date(Date.now() - (3600 + 1) * 1000).toISOString(); // 1h ago -> 1 giờ trước
+
+    req.flush([
+      {
+        id: 'c-1',
+        postId: samplePostId,
+        userId: 'u-1',
+        authorName: 'User 1',
+        content: 'Bình luận vừa xong',
+        createdAt: justNow
+      },
+      {
+        id: 'c-2',
+        postId: samplePostId,
+        userId: 'u-2',
+        authorName: 'User 2',
+        content: 'Bình luận 1 giờ trước',
+        createdAt: oneHourAgo
+      }
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const timeElems = element.querySelectorAll('.comment-time');
+    expect(timeElems.length).toBe(2);
+    expect(timeElems[0]?.textContent?.trim()).toBe('vừa xong');
+    expect(timeElems[1]?.textContent?.trim()).toBe('1 giờ trước');
   });
 
   it('PO Decision: should render text safely without executing HTML/script (XSS protection)', async () => {

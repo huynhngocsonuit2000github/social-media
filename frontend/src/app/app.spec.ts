@@ -27,4 +27,23 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.logo')?.textContent).toContain('Social Media');
   });
+
+  it('SM-7: should render relative time for the post', async () => {
+    const fixture = TestBed.createComponent(App);
+    // Thiết lập thời gian bài đăng cách đây 30 giây
+    fixture.componentInstance.postCreatedAt.set(new Date(Date.now() - 30 * 1000).toISOString());
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const postTime = compiled.querySelector('.post-time');
+    expect(postTime).toBeTruthy();
+    expect(postTime?.textContent?.trim()).toBe('vừa xong');
+
+    // Cập nhật thời gian bài đăng thành 1 giờ trước
+    fixture.componentInstance.postCreatedAt.set(new Date(Date.now() - (3600 + 1) * 1000).toISOString());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(postTime?.textContent?.trim()).toBe('1 giờ trước');
+  });
 });
