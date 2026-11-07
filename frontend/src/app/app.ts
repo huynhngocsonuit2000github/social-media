@@ -2,12 +2,13 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommentSection } from './components/comment-section/comment-section';
 import { NotificationCenter } from './components/notification-center/notification-center';
+import { PostCreate } from './components/post-create/post-create';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommentSection, NotificationCenter],
+  imports: [RouterOutlet, CommentSection, NotificationCenter, PostCreate],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

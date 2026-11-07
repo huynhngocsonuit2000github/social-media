@@ -42,10 +42,12 @@
       ></textarea>
       
       <div class="counter-and-actions">
-        <!-- Đếm ký tự theo Unicode code points -->
-        <span class="char-counter" [class.over-limit]="charCount() > 500">
-          {{ charCount() }} / 500 ký tự
-        </span>
+        <!-- Đếm ký tự còn lại theo Unicode code points (AC1, AC2, AC3, AC4) -->
+        <span
+          class="char-counter"
+          [class.over-limit]="remainingChars() < 0"
+          data-testid="comment-char-counter"
+        >{{ remainingChars() }}</span>
       </div>
     </div>
 
@@ -67,12 +69,12 @@
       <button
         type="submit"
         class="submit-button"
-        [disabled]="isSubmitting() || !hasViewPermission()"
+        [disabled]="isSubmitting() || !hasViewPermission() || !isContentValid()"
       >
         @if (isSubmitting()) {
           <span>Đang gửi...</span>
         } @else {
-          <span>Gửi bình luận</span>
+          <span>Đăng</span>
         }
       </button>
     </div>
