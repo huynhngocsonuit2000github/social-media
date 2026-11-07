@@ -27,6 +27,12 @@ public class InMemoryCommentRepository : ICommentRepository
         return Task.FromResult<IReadOnlyList<Comment>>(list);
     }
 
+    public Task<int> GetCountByPostIdAsync(Guid postId)
+    {
+        var count = _comments.Values.Count(c => c.PostId == postId);
+        return Task.FromResult(count);
+    }
+
     public Task DeleteByPostIdAsync(Guid postId)
     {
         var keysToRemove = _comments.Values

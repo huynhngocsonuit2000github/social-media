@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Comment } from '../../models/comment.model';
@@ -16,6 +16,8 @@ import { RelativeTimePipe } from '../../pipes/relative-time.pipe';
 export class CommentSection {
   readonly postId = input.required<string>();
   readonly hasViewPermission = input<boolean>(true);
+
+  readonly commentAdded = output<Comment>();
 
   private readonly commentService = inject(CommentService);
   readonly authService = inject(AuthService);
@@ -115,6 +117,7 @@ export class CommentSection {
       next: (created) => {
         // AC1, AC7: Bình luận được đăng thành công và hiển thị trên bài đăng
         this.comments.update((prev) => [...prev, created]);
+        this.commentAdded.emit(created);
         this.content.set('');
         this.successMessage.set('Đăng bình luận thành công!');
         this.isSubmitting.set(false);

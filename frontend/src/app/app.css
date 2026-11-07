@@ -184,6 +184,15 @@
   font-weight: 700;
 }
 
+.comment-count {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+  padding: 0.5rem 0.25rem;
+}
+
 .loading-state,
 .empty-state {
   text-align: center;

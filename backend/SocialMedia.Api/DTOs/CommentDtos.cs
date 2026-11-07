@@ -20,7 +20,8 @@ public record PostResponse(
     string Content,
     DateTimeOffset CreatedAt,
     int LikeCount = 0,
-    bool IsLiked = false
+    bool IsLiked = false,
+    int CommentCount = 0
 );
 
 public record LikeResponse(

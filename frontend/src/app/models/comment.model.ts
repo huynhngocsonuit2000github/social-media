@@ -15,6 +15,7 @@ export interface Post {
   createdAt: string;
   likeCount?: number;
   isLiked?: boolean;
+  commentCount?: number;
 }
 
 export interface LikeResponse {

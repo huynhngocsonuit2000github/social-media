@@ -62,10 +62,13 @@
                   <span class="like-label">{{ post.isLiked ? 'Đã thích' : 'Thích' }}</span>
                   <span class="like-count" [attr.data-testid]="'like-count-' + post.id">({{ post.likeCount ?? 0 }})</span>
                 </button>
+
+                <!-- Hiển thị tổng số bình luận trên giao diện bài đăng (AC1, AC2, AC3, AC4) -->
+                <span class="comment-count" [attr.data-testid]="'comment-count-' + post.id">{{ post.commentCount ?? 0 }} bình luận</span>
               </div>
 
               <!-- Khu vực bình luận -->
-              <app-comment-section [postId]="post.id"></app-comment-section>
+              <app-comment-section [postId]="post.id" (commentAdded)="onCommentAdded(post.id)"></app-comment-section>
             </article>
           }
         </div>
