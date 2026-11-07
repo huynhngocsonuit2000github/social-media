@@ -2,6 +2,8 @@ namespace SocialMedia.Api.DTOs;
 
 public record CreateCommentRequest(string? Content);
 
+public record CreatePostRequest(string? Content, string? Title = null);
+
 public record CommentResponse(
     Guid Id,
     Guid PostId,
