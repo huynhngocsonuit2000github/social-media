@@ -5,7 +5,7 @@
 
       <div class="user-panel">
         @if (authService.isLoggedIn()) {
-          <!-- Notification Center trong ứng dụng (AC4) -->
+          <!-- Notification Center trong ứng dụng -->
           <app-notification-center></app-notification-center>
 
           <span class="user-info">
@@ -21,30 +21,55 @@
   </header>
 
   <main class="main-content">
-    <!-- Khu vực tạo bài đăng mới (áp dụng giới hạn ký tự) -->
-    <app-post-create></app-post-create>
+    @if (isLoginRoute()) {
+      <router-outlet />
+    } @else {
+      <!-- Khu vực tạo bài đăng mới (áp dụng giới hạn ký tự) -->
+      <app-post-create (postCreated)="onPostCreated($event)"></app-post-create>
 
-    <div class="post-card">
-      <div class="post-header">
-        <div class="post-meta">
-          <span class="post-author">Người đăng: Hệ thống (author-system)</span>
-          <time class="post-time" [attr.datetime]="postCreatedAt()">{{ postCreatedAt() | relativeTime }}</time>
+      @if (isLoading() && posts().length === 0) {
+        <div class="loading-state">Đang tải danh sách bài đăng...</div>
+      } @else if (posts().length === 0) {
+        <div class="empty-state">Chưa có bài đăng nào.</div>
+      } @else {
+        <div class="posts-list">
+          @for (post of posts(); track post.id) {
+            <article class="post-card" [attr.data-post-id]="post.id">
+              <div class="post-header">
+                <div class="post-meta">
+                  <span class="post-author">Người đăng: {{ post.authorId }}</span>
+                  <time class="post-time" [attr.datetime]="post.createdAt">{{ post.createdAt | relativeTime }}</time>
+                </div>
+                <h2 class="post-title">{{ post.title }}</h2>
+              </div>
+
+              <div class="post-body">
+                <p>{{ post.content }}</p>
+              </div>
+
+              <!-- Khu vực nút Thích và thông tin lượt thích (AC1, AC2, AC3, AC4) -->
+              <div class="post-actions">
+                <button
+                  type="button"
+                  class="like-btn"
+                  [class.liked]="post.isLiked"
+                  [attr.data-testid]="'like-btn-' + post.id"
+                  [attr.aria-pressed]="post.isLiked"
+                  [attr.aria-label]="post.isLiked ? 'Bỏ thích bài đăng' : 'Thích bài đăng'"
+                  (click)="toggleLike(post)"
+                >
+                  <span class="like-icon" aria-hidden="true">{{ post.isLiked ? '❤️' : '🤍' }}</span>
+                  <span class="like-label">{{ post.isLiked ? 'Đã thích' : 'Thích' }}</span>
+                  <span class="like-count" [attr.data-testid]="'like-count-' + post.id">({{ post.likeCount ?? 0 }})</span>
+                </button>
+              </div>
+
+              <!-- Khu vực bình luận -->
+              <app-comment-section [postId]="post.id"></app-comment-section>
+            </article>
+          }
         </div>
-        <h2 class="post-title">Chào mừng bạn đến với mạng xã hội</h2>
-      </div>
-
-      <div class="post-body">
-        <p>
-          Đây là bài đăng mẫu. Mọi người hãy để lại bình luận để chia sẻ ý kiến và tương tác với nội dung nhé!
-        </p>
-      </div>
-
-      <!-- Khu vực bình luận -->
-      <app-comment-section
-        [postId]="currentPostId()"
-      ></app-comment-section>
-    </div>
+      }
+    }
   </main>
 </div>
-
-<router-outlet />

@@ -8,13 +8,18 @@ public class InMemoryPostRepository : IPostRepository
     private readonly ConcurrentDictionary<Guid, Post> _posts = new();
     private readonly ICommentRepository _commentRepository;
     private readonly INotificationRepository? _notificationRepository;
+    private readonly IPostLikeRepository? _postLikeRepository;
 
     public static readonly Guid DefaultPostId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
-    public InMemoryPostRepository(ICommentRepository commentRepository, INotificationRepository? notificationRepository = null)
+    public InMemoryPostRepository(
+        ICommentRepository commentRepository,
+        INotificationRepository? notificationRepository = null,
+        IPostLikeRepository? postLikeRepository = null)
     {
         _commentRepository = commentRepository;
         _notificationRepository = notificationRepository;
+        _postLikeRepository = postLikeRepository;
 
         // Seed a default post for viewing and commenting
         var defaultPost = new Post
@@ -55,6 +60,10 @@ public class InMemoryPostRepository : IPostRepository
             if (_notificationRepository is not null)
             {
                 await _notificationRepository.DeleteByPostIdAsync(id);
+            }
+            if (_postLikeRepository is not null)
+            {
+                await _postLikeRepository.DeleteByPostIdAsync(id);
             }
             return true;
         }
